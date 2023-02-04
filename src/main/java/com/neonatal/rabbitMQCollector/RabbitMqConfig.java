@@ -9,6 +9,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,15 +17,19 @@ import java.util.List;
 @Configuration
 public class RabbitMqConfig {
 
+    @Profile("Receiver")
     @Bean(name="dataQueue")
     Queue dataQueue() {return new Queue("data", false);}
 
+    @Profile("Receiver")
     @Bean(name="scheduleQueue")
     Queue scheduleQueue() {return new Queue("schedule", false);}
 
+    @Profile("Receiver")
     @Bean
     DirectExchange exchange() {return new DirectExchange("exchange");}
 
+    @Profile("Receiver")
     @Bean
     List<Binding> binding(@Qualifier("dataQueue") Queue data, @Qualifier("scheduleQueue") Queue schedule, DirectExchange exchange) {
         List<Binding> bindings = new ArrayList<>();

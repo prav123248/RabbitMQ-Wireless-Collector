@@ -1,0 +1,24 @@
+Setup Process
+1. Use the spring.start.io website with the config in a screenshot. 
+2. Download the latest version of Erlang available at erlang.org/downloads
+3. Download RabbitMQ server from the website.
+
+Profiles : 
+-Dspring.profiles.active=Receiver
+-Dspring.profiles.active=Sender
+
+Adjust between the Sender and Receiver profiles depending on which aspect of the system you need.
+Raspberry PI nodes should use Sender. Central point like a laptop should use Receiver.
+
+In Intellij, edit configurations, add VM options and paste the -D text listed above.
+
+
+
+Useful commands
+4. cd "C:\Program Files\RabbitMQ Server\rabbitmq_server-3.11.7\sbin"
+5. rabbitmq-service start/stop
+6. rabbitmq-plugins enable rabbitmq_management
+7. rabbitmq-server
+
+Important points :
+Make sure the RabbitMQ service is running on the central point.

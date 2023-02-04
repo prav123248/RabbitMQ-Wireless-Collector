@@ -11,7 +11,6 @@ public class RabbitMqCollectorApplication {
 		ApplicationContext context = SpringApplication.run(RabbitMqCollectorApplication.class, args);
 		Sender myProducer = context.getBean(Sender.class);
 		myProducer.sendMessage("Hello Universe!");
-
 		Receiver myConsumer = context.getBean(Receiver.class);
 		myConsumer.sendSchedule("Welcome!");
 	}
