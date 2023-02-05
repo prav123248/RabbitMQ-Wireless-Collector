@@ -1,0 +1,7 @@
+These notes are for the person who continues this project and has to extend it. It contains any thoughts I have when developing this component (wireless transmission one) that may be useful to you.
+
+1. RabbitMQ Server and Consumer on the different machines
+Since I specified that the central point will be the laptop, the consumer (receiver) and RabbitMQ server will be on the same machine. In most cases, I believe the RabbitMQ server should be on a separate dedicated device for performance as the laptop in this case may be overloaded if it has to process messages and act as the server. A possible option to improve the scalability of this component is to separate the consumer and RabbitMQ server which should be easy to do.
+
+2. Multiple Consumers
+When scaling the number of producers up, it may be difficult for the consumer to process the large amounts of data it receives. Adding more consumers could solve this but could add complexity when collating data after processing.
