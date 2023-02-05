@@ -12,8 +12,6 @@ Raspberry PI nodes should use Sender. Central point like a laptop should use Rec
 
 In Intellij, edit configurations, add VM options and paste the -D text listed above.
 
-
-
 Useful commands
 4. cd "C:\Program Files\RabbitMQ Server\rabbitmq_server-3.11.7\sbin"
 5. rabbitmq-service start/stop
@@ -22,8 +20,10 @@ Useful commands
 
 Important points :
 Make sure the RabbitMQ service is running on the central point.
+RabbitMQ Server & Erlang need to be installed only on the server/central point(laptop). Only libraries needed for the Java files should be installed for the nodes (raspberry PI). 
 
 Notes for remote commmunication :
 Specify host (laptop/central point) IP address in application.properties for Sender
 Make sure Reciever (laptop/central point) has incoming connections in firewall unblocked.
 Make sure remote users (raspberry PIs) use the node user (or any with right permission) and not guest.
+
