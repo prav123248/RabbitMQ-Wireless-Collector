@@ -17,8 +17,13 @@ In Intellij, edit configurations, add VM options and paste the -D text listed ab
 Useful commands
 4. cd "C:\Program Files\RabbitMQ Server\rabbitmq_server-3.11.7\sbin"
 5. rabbitmq-service start/stop
-6. rabbitmq-plugins enable rabbitmq_management
+6. rabbitmq-plugins enable rabbitmq_management  (Use http://localhost:15672/ to access management UI)
 7. rabbitmq-server
 
 Important points :
 Make sure the RabbitMQ service is running on the central point.
+
+Notes for remote commmunication :
+Specify host (laptop/central point) IP address in application.properties for Sender
+Make sure Reciever (laptop/central point) has incoming connections in firewall unblocked.
+Make sure remote users (raspberry PIs) use the node user (or any with right permission) and not guest.
