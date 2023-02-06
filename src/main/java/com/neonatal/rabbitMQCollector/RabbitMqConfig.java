@@ -30,7 +30,11 @@ public class RabbitMqConfig {
 
     @Profile("Receiver")
     @Bean(name="scheduleQueue")
-    Queue scheduleQueue() {return new Queue("schedule", false);}
+    Queue scheduleQueue() {return new Queue("schedule.#", false);}
+
+    @Profile("Receiver")
+    @Bean(name="initialContact")
+    Queue contactQueue() {return new Queue("initialContact", false);}
 
     @Profile("Receiver")
     @Bean
@@ -38,10 +42,11 @@ public class RabbitMqConfig {
 
     @Profile("Receiver")
     @Bean
-    List<Binding> binding(@Qualifier("dataQueue") Queue data, @Qualifier("scheduleQueue") Queue schedule, DirectExchange exchange) {
+    List<Binding> binding(@Qualifier("dataQueue") Queue data, @Qualifier("scheduleQueue") Queue schedule, @Qualifier("initialContact") Queue contact, DirectExchange exchange) {
         List<Binding> bindings = new ArrayList<>();
         bindings.add(BindingBuilder.bind(data).to(exchange).with("data"));
-        bindings.add(BindingBuilder.bind(schedule).to(exchange).with("schedule"));
+        bindings.add(BindingBuilder.bind(schedule).to(exchange).with("schedule.*"));
+        bindings.add(BindingBuilder.bind(contact).to(exchange).with("initialContact"));
         return bindings;
     }
 

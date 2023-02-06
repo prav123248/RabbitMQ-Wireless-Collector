@@ -33,15 +33,22 @@ public class Sender {
     @Value("${rabbitmq.path}")
     private String csvPath;
 
+    private int scheduleInterval = 3500;
+
     public Sender() {
         try {
             InetAddress inet = InetAddress.getLocalHost();
             ID = inet.getHostAddress();
+
+            if (name == null)
+                name = ID;
         }
         catch(UnknownHostException e) {
             System.out.println("Could not retrieve host information");
             ID = String.valueOf(new Random().nextInt());
         }
+        String senderIdentity = name + "," + ID;
+        rabbitTemplate.convertAndSend("initialContact", senderIdentity);
     }
 
     public void sendMessage() {
@@ -72,8 +79,16 @@ public class Sender {
         System.out.println("Successfully sent data");
     }
 
-    @RabbitListener(queues="schedule")
+    @RabbitListener(queues="#{scheduleQueueName()}")
     public void processSchedule(String message) {
+        System.out.println("My IP address is " + ID + " and " + name);
+        try {
+            this.scheduleInterval = Integer.parseInt(message);
+        }
+        catch(NumberFormatException e) {
+            System.out.println("Not a number!");
+        }
+
         System.out.println("Received Schedule message: " + message);
     }
 
@@ -88,5 +103,9 @@ public class Sender {
             return outputStream.toByteArray();
 
         }
+    }
+
+    public String scheduleQueueName() {
+        return "schedule." + this.ID;
     }
 }

@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.HashMap;
 import java.util.Map;
 
 //Receiver class responsible for processing received data and controlling the communication schedule
@@ -19,6 +20,11 @@ public class Receiver {
 
     @Autowired
     private RabbitTemplate rabbitTemplate;
+
+
+    //Temporary Storage - will store in DB later
+    private Map<String, String> nodeNames = new HashMap<>();
+    private Map<String, Integer> nodeSchedule = new HashMap<>();
 
     @RabbitListener(queues="data")
     public void processMessage(Message message) {
@@ -32,10 +38,29 @@ public class Receiver {
         System.out.println("Completed processing data and saved it back to a CSV file");
     }
 
-    public void sendSchedule(String message) {
-        System.out.println("Sent to schedule queue");
-        rabbitTemplate.convertAndSend("schedule", message);
+    public void sendSchedule(String ipAddress) {
+        System.out.println("Sent to schedule." + ipAddress + " queue");
+        rabbitTemplate.convertAndSend("schedule." + ipAddress, 1000);
     }
+
+    @RabbitListener(queues="initialContact")
+    public void processNewNode(String message) {
+        String[] messageArray = message.split(",");
+
+        if (nodeNames.containsKey(messageArray[1])) {
+            System.out.println(messageArray[1] + " with name " + messageArray[0] + " already connected before.");
+            return;
+        }
+
+        nodeNames.put(messageArray[1], messageArray[0]);
+        nodeSchedule.put(messageArray[1], 3500);
+
+        System.out.println("Users are :");
+        for (String name : nodeNames.keySet()) {
+            System.out.println(name + " with name : " + nodeNames.get(name) + " with schedule " + nodeSchedule.get(name));
+        }
+    }
+
 
     public static void processByteArray(byte[] data) {
         try (OutputStream outputStream = new FileOutputStream("collectedData/received/receivedAS3DataExport.csv")) {
