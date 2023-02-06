@@ -27,3 +27,4 @@ Specify host (laptop/central point) IP address in application.properties for Sen
 Make sure Reciever (laptop/central point) has incoming connections in firewall unblocked.
 Make sure remote users (raspberry PIs) use the node user (or any with right permission) and not guest.
 
+(Use bad toByteArray and switch to the good one, ctrl+f approach 1/2 in Project Chat 2)
