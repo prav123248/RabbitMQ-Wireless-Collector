@@ -2,19 +2,15 @@ package com.neonatal.rabbitMQCollector;
 import jakarta.annotation.PostConstruct;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Profile;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.nio.file.InvalidPathException;
-import java.util.Random;
 
 
 //Sender class responsible for sending data according to the communication schedule
@@ -50,6 +46,16 @@ public class Sender {
     public void notifyServer() {
         String senderIdentity = name + "," + ID;
         rabbitTemplate.convertAndSend("initialContact", senderIdentity);
+    }
+
+    public void scheduledSend() {
+        //Code to capture data
+        long startTime = System.currentTimeMillis();
+        while(System.currentTimeMillis() - startTime < this.scheduleInterval) {
+            //Capture data method
+            //System.out.println("Waiting for now.");
+        }
+        sendData();
     }
 
     public void sendData() {

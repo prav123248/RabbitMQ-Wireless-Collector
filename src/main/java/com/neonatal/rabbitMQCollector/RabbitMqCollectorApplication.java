@@ -13,7 +13,7 @@ public class RabbitMqCollectorApplication {
 		String profile = System.getProperty("spring.profiles.active");
 		if (profile.equals("Sender")) {
 			Sender myProducer = context.getBean(Sender.class);
-			myProducer.sendData();
+			myProducer.scheduledSend();
 		}
 	}
 
