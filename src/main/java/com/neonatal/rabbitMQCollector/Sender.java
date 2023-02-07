@@ -1,10 +1,12 @@
 package com.neonatal.rabbitMQCollector;
+import jakarta.annotation.PostConstruct;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
@@ -28,31 +30,29 @@ public class Sender {
     @Value("${rabbitmq.name}")
     private String name;
 
+    //IP Address / Unique identifier
+    @Autowired
     private String ID;
 
     @Value("${rabbitmq.path}")
     private String csvPath;
 
-    private int scheduleInterval = 3500;
+    @Value("${rabbitmq.scheduleInterval}")
+    private int scheduleInterval;
 
     public Sender() {
-        try {
-            InetAddress inet = InetAddress.getLocalHost();
-            ID = inet.getHostAddress();
+        if (name == null) {
+            name = ID;
+        }
+    }
 
-            if (name == null)
-                name = ID;
-        }
-        catch(UnknownHostException e) {
-            System.out.println("Could not retrieve host information");
-            ID = String.valueOf(new Random().nextInt());
-        }
+    @PostConstruct
+    public void notifyServer() {
         String senderIdentity = name + "," + ID;
         rabbitTemplate.convertAndSend("initialContact", senderIdentity);
     }
 
-    public void sendMessage() {
-
+    public void sendData() {
         //Set headers to pass metadata with the message
         MessageProperties props = new MessageProperties();
         props.setHeader("nodeName", name);
@@ -79,19 +79,6 @@ public class Sender {
         System.out.println("Successfully sent data");
     }
 
-    @RabbitListener(queues="#{scheduleQueueName()}")
-    public void processSchedule(String message) {
-        System.out.println("My IP address is " + ID + " and " + name);
-        try {
-            this.scheduleInterval = Integer.parseInt(message);
-        }
-        catch(NumberFormatException e) {
-            System.out.println("Not a number!");
-        }
-
-        System.out.println("Received Schedule message: " + message);
-    }
-
     public static byte[] toByteArray(File csvFile) throws IOException {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         try (InputStream inputStream = new FileInputStream(csvFile)) {
@@ -105,7 +92,5 @@ public class Sender {
         }
     }
 
-    public String scheduleQueueName() {
-        return "schedule." + this.ID;
-    }
+
 }

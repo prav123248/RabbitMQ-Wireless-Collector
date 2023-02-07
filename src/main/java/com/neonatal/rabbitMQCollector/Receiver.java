@@ -38,11 +38,6 @@ public class Receiver {
         System.out.println("Completed processing data and saved it back to a CSV file");
     }
 
-    public void sendSchedule(String ipAddress) {
-        System.out.println("Sent to schedule." + ipAddress + " queue");
-        rabbitTemplate.convertAndSend("schedule." + ipAddress, 1000);
-    }
-
     @RabbitListener(queues="initialContact")
     public void processNewNode(String message) {
         String[] messageArray = message.split(",");
@@ -60,7 +55,6 @@ public class Receiver {
             System.out.println(name + " with name : " + nodeNames.get(name) + " with schedule " + nodeSchedule.get(name));
         }
     }
-
 
     public static void processByteArray(byte[] data) {
         try (OutputStream outputStream = new FileOutputStream("collectedData/received/receivedAS3DataExport.csv")) {

@@ -12,8 +12,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 @Configuration
 public class RabbitMqConfig {
@@ -24,28 +27,39 @@ public class RabbitMqConfig {
     @Value("${rabbitmq.port}")
     private int serverPort;
 
+    @Profile("Sender")
+    @Bean(name="ID")
+    String uniqueID() {
+        String ID;
+        //Uses IP Address or Random number to uniquely identify Node
+        try {
+            InetAddress inet = InetAddress.getLocalHost();
+            ID = inet.getHostAddress();
+        }
+        catch(UnknownHostException e) {
+            System.out.println("Could not retrieve host information");
+            ID = String.valueOf(new Random().nextInt());
+        }
+        return ID;
+    }
+
     @Profile("Receiver")
     @Bean(name="dataQueue")
     Queue dataQueue() {return new Queue("data", false);}
-
-    @Profile("Receiver")
-    @Bean(name="scheduleQueue")
-    Queue scheduleQueue() {return new Queue("schedule.#", false);}
 
     @Profile("Receiver")
     @Bean(name="initialContact")
     Queue contactQueue() {return new Queue("initialContact", false);}
 
     @Profile("Receiver")
-    @Bean
+    @Bean()
     DirectExchange exchange() {return new DirectExchange("exchange");}
 
     @Profile("Receiver")
     @Bean
-    List<Binding> binding(@Qualifier("dataQueue") Queue data, @Qualifier("scheduleQueue") Queue schedule, @Qualifier("initialContact") Queue contact, DirectExchange exchange) {
+    List<Binding> binding(@Qualifier("dataQueue") Queue data, @Qualifier("initialContact") Queue contact, DirectExchange exchange) {
         List<Binding> bindings = new ArrayList<>();
         bindings.add(BindingBuilder.bind(data).to(exchange).with("data"));
-        bindings.add(BindingBuilder.bind(schedule).to(exchange).with("schedule.*"));
         bindings.add(BindingBuilder.bind(contact).to(exchange).with("initialContact"));
         return bindings;
     }
