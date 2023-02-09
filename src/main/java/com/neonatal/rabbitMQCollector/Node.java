@@ -12,11 +12,11 @@ import java.io.*;
 import java.nio.file.InvalidPathException;
 
 
-//Sender class responsible for sending data according to the communication schedule
-//Sender represents a node in the system that collects data.
-@Profile("Sender")
+//Node class responsible for sending data according to the communication schedule
+//Node represents a node in the system that collects data.
+@Profile("Node")
 @Service
-public class Sender {
+public class Node {
 
     @Autowired
     private RabbitTemplate rabbitTemplate;
@@ -35,7 +35,7 @@ public class Sender {
     @Value("${rabbitmq.scheduleInterval}")
     private int scheduleInterval;
 
-    public Sender() {
+    public Node() {
         if (name == null) {
             name = ID;
         }
@@ -43,8 +43,8 @@ public class Sender {
 
     @PostConstruct
     public void notifyServer() {
-        String senderIdentity = name + "," + ID;
-        rabbitTemplate.convertAndSend("initialContact", senderIdentity);
+        String nodeIdentity = name + "," + ID;
+        rabbitTemplate.convertAndSend("authentication", nodeIdentity);
     }
 
     public void scheduledSend() {
@@ -72,13 +72,13 @@ public class Sender {
 
         }
         catch(FileNotFoundException e)  {
-            System.out.println("File wasn't found (sender).");
+            System.out.println("File wasn't found (node).");
         }
         catch(InvalidPathException e) {
-            System.out.print("Path is invalid (sender).");
+            System.out.print("Path is invalid (node).");
         }
         catch(IOException e) {
-            System.out.println("File error occurred (sender).");
+            System.out.println("File error occurred (node).");
         }
 
         System.out.println("Successfully sent data");

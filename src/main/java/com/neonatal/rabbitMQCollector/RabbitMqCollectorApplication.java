@@ -11,8 +11,8 @@ public class RabbitMqCollectorApplication {
 		ApplicationContext context = SpringApplication.run(RabbitMqCollectorApplication.class, args);
 
 		String profile = System.getProperty("spring.profiles.active");
-		if (profile.equals("Sender")) {
-			Sender myProducer = context.getBean(Sender.class);
+		if (profile.equals("Node")) {
+			Node myProducer = context.getBean(Node.class);
 			myProducer.scheduledSend();
 		}
 	}

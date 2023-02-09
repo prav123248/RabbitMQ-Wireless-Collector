@@ -12,11 +12,11 @@ import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
 
-//Receiver class responsible for processing received data and controlling the communication schedule
-//Receiver represents the central point in the system where data is sent to.
-@Profile("Receiver")
+//Controller class responsible for processing received data and controlling the communication schedule
+//Controller represents the central point in the system where data is sent to.
+@Profile("Controller")
 @Service
-public class Receiver {
+public class Controller {
 
     @Autowired
     private RabbitTemplate rabbitTemplate;
@@ -38,7 +38,7 @@ public class Receiver {
         System.out.println("Completed processing data and saved it back to a CSV file");
     }
 
-    @RabbitListener(queues="initialContact")
+    @RabbitListener(queues="authentication")
     public void processNewNode(String message) {
         String[] messageArray = message.split(",");
 

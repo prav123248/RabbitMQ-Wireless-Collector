@@ -26,5 +26,6 @@ Notes for remote commmunication :
 Specify host (laptop/central point) IP address in application.properties for Sender
 Make sure Reciever (laptop/central point) has incoming connections in firewall unblocked.
 Make sure remote users (raspberry PIs) use the node user (or any with right permission) and not guest.
+Use a different user than guest or Login will fail. Make a new user and give all permissions.
 
-(Use bad toByteArray and switch to the good one, ctrl+f approach 1/2 in Project Chat 2)
+(Use bad toByteArray and switch to the good one for project report, ctrl+f approach 1/2 in Project Chat 2)

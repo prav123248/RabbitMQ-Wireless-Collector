@@ -27,7 +27,7 @@ public class RabbitMqConfig {
     @Value("${rabbitmq.port}")
     private int serverPort;
 
-    @Profile("Sender")
+    @Profile("Node")
     @Bean(name="ID")
     String uniqueID() {
         String ID;
@@ -43,24 +43,24 @@ public class RabbitMqConfig {
         return ID;
     }
 
-    @Profile("Receiver")
+    @Profile("Controller")
     @Bean(name="dataQueue")
     Queue dataQueue() {return new Queue("data", false);}
 
-    @Profile("Receiver")
-    @Bean(name="initialContact")
-    Queue contactQueue() {return new Queue("initialContact", false);}
+    @Profile("Controller")
+    @Bean(name="authentication")
+    Queue contactQueue() {return new Queue("authentication", false);}
 
-    @Profile("Receiver")
+    @Profile("Controller")
     @Bean()
     DirectExchange exchange() {return new DirectExchange("exchange");}
 
-    @Profile("Receiver")
+    @Profile("Controller")
     @Bean
-    List<Binding> binding(@Qualifier("dataQueue") Queue data, @Qualifier("initialContact") Queue contact, DirectExchange exchange) {
+    List<Binding> binding(@Qualifier("dataQueue") Queue data, @Qualifier("authentication") Queue contact, DirectExchange exchange) {
         List<Binding> bindings = new ArrayList<>();
         bindings.add(BindingBuilder.bind(data).to(exchange).with("data"));
-        bindings.add(BindingBuilder.bind(contact).to(exchange).with("initialContact"));
+        bindings.add(BindingBuilder.bind(contact).to(exchange).with("authentication"));
         return bindings;
     }
 
