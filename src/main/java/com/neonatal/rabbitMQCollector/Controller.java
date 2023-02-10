@@ -1,6 +1,8 @@
 package com.neonatal.rabbitMQCollector;
+import com.rabbitmq.client.Channel;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.rabbit.core.ChannelCallback;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
@@ -41,7 +43,7 @@ public class Controller {
     @RabbitListener(queues="authentication")
     public void processNewNode(String message) {
         String[] messageArray = message.split(",");
-
+        System.out.println("Why");
         if (nodeNames.containsKey(messageArray[1])) {
             System.out.println(messageArray[1] + " with name " + messageArray[0] + " already connected before.");
             return;
@@ -54,9 +56,10 @@ public class Controller {
         for (String name : nodeNames.keySet()) {
             System.out.println(name + " with name : " + nodeNames.get(name) + " with schedule " + nodeSchedule.get(name));
         }
+        createQueue(messageArray[1], messageArray[0]);
     }
 
-    public static void processByteArray(byte[] data) {
+    private static void processByteArray(byte[] data) {
         try (OutputStream outputStream = new FileOutputStream("collectedData/received/receivedAS3DataExport.csv")) {
             outputStream.write(data);
         }
@@ -64,4 +67,41 @@ public class Controller {
             System.out.println("An error occurred");
         }
     }
+
+    private void createQueue(String ipAddress, String name) {
+
+        ChannelCallback<Void> queueDeclare = new ChannelCallback<Void>() {
+            @Override
+            public Void doInRabbit(Channel channel) throws Exception {
+                channel.queueDeclare(name + "-" + ipAddress, true, false, false, null);
+                channel.queueBind(name + "-" + ipAddress, rabbitTemplate.getExchange(), name + "-" + ipAddress);
+                return null;
+            }
+        };
+
+        rabbitTemplate.execute(queueDeclare);
+    }
+
+    private void sendPullRequest(String ipAddress, String name) {
+        rabbitTemplate.convertAndSend(name + "-" + ipAddress, "PullRequest");
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }

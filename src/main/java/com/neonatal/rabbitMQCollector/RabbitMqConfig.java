@@ -45,19 +45,23 @@ public class RabbitMqConfig {
 
     @Profile("Controller")
     @Bean(name="dataQueue")
-    Queue dataQueue() {return new Queue("data", false);}
+    Queue dataQueue() {
+        return new Queue("data", false);}
 
     @Profile("Controller")
-    @Bean(name="authentication")
+    @Bean(name="authenticationQueue")
     Queue contactQueue() {return new Queue("authentication", false);}
 
     @Profile("Controller")
     @Bean()
-    DirectExchange exchange() {return new DirectExchange("exchange");}
+    DirectExchange exchange() {
+        DirectExchange myExchange = new DirectExchange("exchange");
+        return new DirectExchange("exchange");
+    }
 
     @Profile("Controller")
     @Bean
-    List<Binding> binding(@Qualifier("dataQueue") Queue data, @Qualifier("authentication") Queue contact, DirectExchange exchange) {
+    List<Binding> binding(@Qualifier("dataQueue") Queue data, @Qualifier("authenticationQueue") Queue contact, DirectExchange exchange) {
         List<Binding> bindings = new ArrayList<>();
         bindings.add(BindingBuilder.bind(data).to(exchange).with("data"));
         bindings.add(BindingBuilder.bind(contact).to(exchange).with("authentication"));
@@ -66,7 +70,9 @@ public class RabbitMqConfig {
 
     @Bean
     public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
-        return new RabbitTemplate(connectionFactory);
+        RabbitTemplate rTemplate = new RabbitTemplate(connectionFactory);
+        rTemplate.setExchange("exchange");
+        return rTemplate;
     }
 
     @Bean

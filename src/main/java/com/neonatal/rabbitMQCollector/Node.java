@@ -2,14 +2,20 @@ package com.neonatal.rabbitMQCollector;
 import jakarta.annotation.PostConstruct;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
+import org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
 import java.nio.file.InvalidPathException;
+import java.util.Map;
+import java.util.function.Consumer;
 
 
 //Node class responsible for sending data according to the communication schedule
@@ -44,16 +50,23 @@ public class Node {
     @PostConstruct
     public void notifyServer() {
         String nodeIdentity = name + "," + ID;
+        System.out.println("Sent authentication request");
         rabbitTemplate.convertAndSend("authentication", nodeIdentity);
     }
 
-    public void scheduledSend() {
-        //Code to capture data
-        long startTime = System.currentTimeMillis();
-        while(System.currentTimeMillis() - startTime < this.scheduleInterval) {
-            //Capture data method
-            //System.out.println("Waiting for now.");
-        }
+
+    @PostConstruct
+    public void controllerListenerContainer() {
+        SimpleMessageListenerContainer controllerListener = new SimpleMessageListenerContainer();
+        controllerListener.setConnectionFactory(rabbitTemplate.getConnectionFactory());
+        controllerListener.setQueueNames(name + "-" + ID);
+        controllerListener.setMessageListener(new MessageListenerAdapter((Consumer<Message>)this::pullRequest));
+        controllerListener.start();
+    }
+
+
+    private void pullRequest(Message message) {
+        System.out.println("Received request to pull by controller");
         sendData();
     }
 
@@ -68,7 +81,7 @@ public class Node {
             File csvFile = new File(csvPath);
             byte[] data = toByteArray(csvFile);
             Message message = new Message(data, props);
-            rabbitTemplate.convertAndSend("data", message);
+            rabbitTemplate.convertAndSend(name + ID, message);
 
         }
         catch(FileNotFoundException e)  {
@@ -96,6 +109,7 @@ public class Node {
 
         }
     }
+
 
 
 }

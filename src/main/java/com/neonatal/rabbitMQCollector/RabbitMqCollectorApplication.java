@@ -13,7 +13,11 @@ public class RabbitMqCollectorApplication {
 		String profile = System.getProperty("spring.profiles.active");
 		if (profile.equals("Node")) {
 			Node myProducer = context.getBean(Node.class);
-			myProducer.scheduledSend();
+
+		}
+		else {
+			Controller myConsumer = context.getBean(Controller.class);
+
 		}
 	}
 
