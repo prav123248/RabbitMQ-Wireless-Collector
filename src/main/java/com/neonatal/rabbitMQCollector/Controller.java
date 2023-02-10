@@ -43,7 +43,6 @@ public class Controller {
     @RabbitListener(queues="authentication")
     public void processNewNode(String message) {
         String[] messageArray = message.split(",");
-        System.out.println("Why");
         if (nodeNames.containsKey(messageArray[1])) {
             System.out.println(messageArray[1] + " with name " + messageArray[0] + " already connected before.");
             return;
@@ -82,8 +81,15 @@ public class Controller {
         rabbitTemplate.execute(queueDeclare);
     }
 
-    private void sendPullRequest(String ipAddress, String name) {
-        rabbitTemplate.convertAndSend(name + "-" + ipAddress, "PullRequest");
+    public void sendPullRequest(String ipAddress, String name) {
+        if (nodeNames.containsKey(ipAddress) && nodeNames.get(ipAddress).equals(name)) {
+            rabbitTemplate.convertAndSend(name + "-" + ipAddress, "PullRequest");
+            System.out.println("Successfully sent a pull request to " + ipAddress + " with name " + name);
+        }
+        else {
+            System.out.println("Could not find : " + ipAddress + " with name " + name);
+        }
+
     }
 
 

@@ -1,8 +1,5 @@
 package com.neonatal.rabbitMQCollector;
-import org.springframework.amqp.core.Binding;
-import org.springframework.amqp.core.BindingBuilder;
-import org.springframework.amqp.core.DirectExchange;
-import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -50,10 +47,10 @@ public class RabbitMqConfig {
 
     @Profile("Controller")
     @Bean(name="authenticationQueue")
-    Queue contactQueue() {return new Queue("authentication", false);}
+    Queue authenticationQueue() {return new Queue("authentication", false);}
 
     @Profile("Controller")
-    @Bean()
+    @Bean
     DirectExchange exchange() {
         DirectExchange myExchange = new DirectExchange("exchange");
         return new DirectExchange("exchange");
@@ -61,11 +58,11 @@ public class RabbitMqConfig {
 
     @Profile("Controller")
     @Bean
-    List<Binding> binding(@Qualifier("dataQueue") Queue data, @Qualifier("authenticationQueue") Queue contact, DirectExchange exchange) {
-        List<Binding> bindings = new ArrayList<>();
-        bindings.add(BindingBuilder.bind(data).to(exchange).with("data"));
-        bindings.add(BindingBuilder.bind(contact).to(exchange).with("authentication"));
-        return bindings;
+    Declarables binding() {
+        return new Declarables(
+                BindingBuilder.bind(dataQueue()).to(exchange()).with("data"),
+                BindingBuilder.bind(authenticationQueue()).to(exchange()).with("authentication")
+        );
     }
 
     @Bean

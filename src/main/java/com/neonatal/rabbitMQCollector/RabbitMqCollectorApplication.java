@@ -17,7 +17,7 @@ public class RabbitMqCollectorApplication {
 		}
 		else {
 			Controller myConsumer = context.getBean(Controller.class);
-
+			myConsumer.sendPullRequest("192.168.56.1", "Node");
 		}
 	}
 
