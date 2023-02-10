@@ -4,6 +4,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationContext;
 
+import java.util.Map;
+
 @SpringBootApplication
 public class RabbitMqCollectorApplication {
 
@@ -17,8 +19,23 @@ public class RabbitMqCollectorApplication {
 		}
 		else {
 			Controller myConsumer = context.getBean(Controller.class);
-			myConsumer.sendPullRequest("192.168.56.1", "Node");
-		}
+			pullTester(myConsumer);
+        }
 	}
+    
+    //Controller pullRequest tester - pulls all connected nodes data every 5 seconds
+    public static void pullTester(Controller consumer) {
+        Map<String,String> connectedNodes = consumer.getNodeNames();
+        while (true) {
+            long startTime = System.currentTimeMillis();
+            while (System.currentTimeMillis() - startTime < 5000) {};
+            System.out.println("Pulling nodes now.");
+            for (String ipAddress : connectedNodes.keySet()) {
+                consumer.sendPullRequest(ipAddress, connectedNodes.get(ipAddress));
+                System.out.println("Pulled the data from " + ipAddress);
+            }
+        }
+
+    }
 
 }

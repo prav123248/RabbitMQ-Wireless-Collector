@@ -92,6 +92,10 @@ public class Controller {
 
     }
 
+    public Map<String,String> getNodeNames() {
+        return nodeNames;
+    }
+
 
 
 
