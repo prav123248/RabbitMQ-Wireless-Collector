@@ -60,12 +60,15 @@ public class Node {
         SimpleMessageListenerContainer controllerListener = new SimpleMessageListenerContainer();
         controllerListener.setConnectionFactory(rabbitTemplate.getConnectionFactory());
         controllerListener.setQueueNames(name + "-" + ID);
-        controllerListener.setMessageListener(new MessageListenerAdapter((Consumer<Message>)this::pullRequest));
+        MessageListenerAdapter converter = new MessageListenerAdapter();
+        converter.setDefaultListenerMethod("pullRequest");
+        converter.setDelegate(this);
+        controllerListener.setMessageListener(converter);
         controllerListener.start();
     }
 
 
-    private void pullRequest(Message message) {
+    private void pullRequest(String message) {
         System.out.println("Received request to pull by controller");
         sendData();
     }
@@ -81,8 +84,7 @@ public class Node {
             File csvFile = new File(csvPath);
             byte[] data = toByteArray(csvFile);
             Message message = new Message(data, props);
-            rabbitTemplate.convertAndSend(name + ID, message);
-
+            rabbitTemplate.convertAndSend("data", message);
         }
         catch(FileNotFoundException e)  {
             System.out.println("File wasn't found (node).");
