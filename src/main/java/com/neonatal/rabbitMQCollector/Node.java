@@ -81,7 +81,7 @@ public class Node {
             File csvFile = new File(csvPath);
             byte[] data = toByteArray(csvFile);
             Message message = new Message(data, props);
-            rabbitTemplate.convertAndSend(name + ID, message);
+            rabbitTemplate.convertAndSend("data", message);
 
         }
         catch(FileNotFoundException e)  {

@@ -5,6 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationContext;
 
 import java.util.Map;
+import java.util.Scanner;
 
 @SpringBootApplication
 public class RabbitMqCollectorApplication {
@@ -19,10 +20,23 @@ public class RabbitMqCollectorApplication {
 		}
 		else {
 			Controller myConsumer = context.getBean(Controller.class);
-			pullTester(myConsumer);
+			//pullTester(myConsumer);
+            while (true) {
+                pullSpecificNode(myConsumer);
+            }
         }
 	}
-    
+
+    public static void pullSpecificNode(Controller consumer) {
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Enter IP address :");
+        String IP = scanner.nextLine();
+        System.out.println("Enter name :");
+        String name = scanner.nextLine();
+        consumer.sendPullRequest(IP, name);
+        System.out.println("Sent pull request to " + IP + ", " + name);
+    }
+
     //Controller pullRequest tester - pulls all connected nodes data every 5 seconds
     public static void pullTester(Controller consumer) {
         Map<String,String> connectedNodes = consumer.getNodeNames();
