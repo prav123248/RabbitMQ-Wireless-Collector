@@ -85,10 +85,6 @@ public class Node {
             byte[] data = toByteArray(csvFile);
             Message message = new Message(data, props);
             rabbitTemplate.convertAndSend("data", message);
-<<<<<<< HEAD
-
-=======
->>>>>>> e9458c4a2f1e5dbf4275b4411b20f5f86a8f9b1e
         }
         catch(FileNotFoundException e)  {
             System.out.println("File wasn't found (node).");
