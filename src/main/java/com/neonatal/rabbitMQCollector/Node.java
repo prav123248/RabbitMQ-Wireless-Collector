@@ -1,8 +1,11 @@
 package com.neonatal.rabbitMQCollector;
+import com.rabbitmq.client.Channel;
 import jakarta.annotation.PostConstruct;
+import org.springframework.amqp.core.AmqpMessageReturnedException;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.rabbit.core.ChannelCallback;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter;
@@ -27,19 +30,21 @@ public class Node {
     @Autowired
     private RabbitTemplate rabbitTemplate;
 
-    //Understandable identifier
+    @Autowired
+    private String ID;
+
     @Value("${rabbitmq.name}")
     private String name;
 
-    //IP Address / Unique identifier
-    @Autowired
-    private String ID;
+    @Value("${rabbitmq.controllerName}")
+    private String controllerName;
 
     @Value("${rabbitmq.path}")
     private String csvPath;
 
-    @Value("${rabbitmq.scheduleInterval}")
-    private int scheduleInterval;
+    private boolean authenticated = true;
+    private String secretKey;
+    private String dataQueueName;
 
     public Node() {
         if (name == null) {
@@ -48,29 +53,72 @@ public class Node {
     }
 
     @PostConstruct
-    public void notifyServer() {
+    public void connectToController() {
         String nodeIdentity = name + "," + ID;
         System.out.println("Sent authentication request");
-        rabbitTemplate.convertAndSend("authentication", nodeIdentity);
+        createQueue(name + "-" + ID);
+        controllerListenerContainer();
+        try {
+            rabbitTemplate.convertAndSend("authentication" + "-" + controllerName, nodeIdentity);
+        } catch (AmqpMessageReturnedException e) {
+            System.out.println("Message returned error - controller likely doesn't exist as the routing key was invalid");
+        }
     }
 
-
-    @PostConstruct
-    public void controllerListenerContainer() {
+    private void controllerListenerContainer() {
         SimpleMessageListenerContainer controllerListener = new SimpleMessageListenerContainer();
         controllerListener.setConnectionFactory(rabbitTemplate.getConnectionFactory());
         controllerListener.setQueueNames(name + "-" + ID);
         MessageListenerAdapter converter = new MessageListenerAdapter();
-        converter.setDefaultListenerMethod("pullRequest");
+        converter.setDefaultListenerMethod("controllerRequest");
         converter.setDelegate(this);
         controllerListener.setMessageListener(converter);
         controllerListener.start();
     }
 
 
-    private void pullRequest(String message) {
-        System.out.println("Received request to pull by controller");
-        sendData();
+    private void controllerRequest(String message) {
+
+        String[] messageArray = message.split(",");
+
+        //Authentication
+        if (messageArray[0].equals("A")) {
+            System.out.println("Authentication response received");
+            //Second index contains T or F for True or False
+            if (messageArray[1].equals("T")) {
+                System.out.println("Connected accepted by controller");
+                authenticated = true;
+                secretKey = messageArray[2];
+                dataQueueName = messageArray[3];
+            }
+            else {
+                System.out.println("Connection refused by controller.");
+                System.exit(0);
+            }
+        }
+        //Pull Request
+        else if (messageArray[0].equals("P")) {
+            System.out.println("Received request to pull by controller.");
+            //Checks if pull request has the secret key
+            if (messageArray[1].equals(secretKey)) {
+                System.out.println("Secret ID matches");
+                //Third index contains N or S for Now or Scheduled
+                if (messageArray[2].equals("N")) {
+                    System.out.println("Pull request now - sending data");
+                    sendData();
+                }
+                //Fourth index has time
+                else if (messageArray[2].equals("S") && messageArray.length == 4) {
+                    //Schedule
+                    System.out.println("Pull request scheduled - " + messageArray[3]);
+                }
+            }
+
+            else {
+                System.out.println("Controller request not understood by node");
+            }
+
+        }
     }
 
     public void sendData() {
@@ -84,7 +132,7 @@ public class Node {
             File csvFile = new File(csvPath);
             byte[] data = toByteArray(csvFile);
             Message message = new Message(data, props);
-            rabbitTemplate.convertAndSend("data", message);
+            rabbitTemplate.convertAndSend(dataQueueName, message);
         }
         catch(FileNotFoundException e)  {
             System.out.println("File wasn't found (node).");
@@ -112,6 +160,17 @@ public class Node {
         }
     }
 
+    private void createQueue(String queueName) {
+        ChannelCallback<Void> queueDeclare = new ChannelCallback<Void>() {
+            @Override
+            public Void doInRabbit(Channel channel) throws Exception {
+                channel.queueDeclare(queueName, true, false, false, null);
+                channel.queueBind(queueName, rabbitTemplate.getExchange(), queueName);
+                return null;
+            }
+        };
 
+        rabbitTemplate.execute(queueDeclare);
+    }
 
 }

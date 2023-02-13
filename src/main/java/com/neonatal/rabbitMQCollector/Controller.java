@@ -1,18 +1,21 @@
 package com.neonatal.rabbitMQCollector;
 import com.rabbitmq.client.Channel;
+import jakarta.annotation.PostConstruct;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.ChannelCallback;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
+import org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 //Controller class responsible for processing received data and controlling the communication schedule
 //Controller represents the central point in the system where data is sent to.
@@ -23,13 +26,82 @@ public class Controller {
     @Autowired
     private RabbitTemplate rabbitTemplate;
 
+    @Value("${rabbitmq.name}")
+    private String name;
 
-    //Temporary Storage - will store in DB later
-    private Map<String, String> nodeNames = new HashMap<>();
-    private Map<String, Integer> nodeSchedule = new HashMap<>();
+    //Data on Connected Nodes
+    private Map<String, String> nodeIdentity = new HashMap<>();
+    private Map<String, String> nodeSecretKeys = new HashMap<>();
 
-    @RabbitListener(queues="data")
-    public void processMessage(Message message) {
+    @PostConstruct
+    public void setupQueues() {
+        createQueue("authentication-" + name);
+        createQueue("data-" + name);
+        createQueueListener("authentication-" + name, "authenticationHandler");
+        createQueueListener("data-" + name, "dataHandler");
+    }
+
+    private void createQueue(String queueName) {
+        ChannelCallback<Void> queueDeclare = new ChannelCallback<Void>() {
+            @Override
+            public Void doInRabbit(Channel channel) throws Exception {
+                channel.queueDeclare(queueName, true, false, false, null);
+                channel.queueBind(queueName, rabbitTemplate.getExchange(), queueName);
+                return null;
+            }
+        };
+
+        rabbitTemplate.execute(queueDeclare);
+    }
+
+    private void createQueueListener(String queueName, String methodListener) {
+        SimpleMessageListenerContainer controllerListener = new SimpleMessageListenerContainer();
+        controllerListener.setConnectionFactory(rabbitTemplate.getConnectionFactory());
+        controllerListener.setQueueNames(queueName);
+        MessageListenerAdapter converter = new MessageListenerAdapter();
+        converter.setDefaultListenerMethod(methodListener);
+        converter.setDelegate(this);
+        controllerListener.setMessageListener(converter);
+        controllerListener.start();
+    }
+
+    public void authenticationHandler(String message) {
+        String[] messageArray = message.split(",");
+
+        //Could be a possible security risk - but you need to fake your IP address for this and have credentials for RabbitMQ Server
+        //Need this if Node reconnects after already authenticating in the past
+        if (nodeIdentity.containsKey(messageArray[1])) {
+            System.out.println(messageArray[1] + " with name " + messageArray[0] + " already connected before.");
+            String successResponse = "A,T," + nodeSecretKeys.get(messageArray[1]) + ",data-" + name;
+            rabbitTemplate.convertAndSend(messageArray[0] + "-" + messageArray[1], successResponse);
+            return;
+        }
+
+        System.out.println("Node "  + messageArray[0] + " with ID " + messageArray[1] + " is attempting to connect to controller " + name);
+        System.out.println("Approve this connection? Type Y for Yes");
+        Scanner scanner = new Scanner(System.in);
+
+        String approval = (scanner.nextLine()).toUpperCase();
+        if (approval.equals("Y")) {
+            //Key is ID, Value is Name
+            nodeIdentity.put(messageArray[1], messageArray[0]);
+            nodeSecretKeys.put(messageArray[1], String.valueOf(new Random().nextInt()));
+            String successResponse = "A,T," + nodeSecretKeys.get(messageArray[1]) + ",data-" + name;
+            rabbitTemplate.convertAndSend(messageArray[0] + "-" + messageArray[1], successResponse);
+        }
+        else {
+            String failedResponse = "A,F";
+            rabbitTemplate.convertAndSend(messageArray[0] + "-" + messageArray[1], failedResponse);
+        }
+
+        System.out.println("Users are :");
+        for (String id : nodeIdentity.keySet()) {
+            System.out.println(id + " with name " + nodeIdentity.get(id));
+        }
+
+    }
+
+    public void dataHandler(Message message) {
         Map<String, Object> headers = message.getMessageProperties().getHeaders();
         String nodeName = (String)headers.get("nodeName");
         String nodeID = (String)headers.get("nodeID");
@@ -40,23 +112,6 @@ public class Controller {
         System.out.println("Completed processing data and saved it back to a CSV file");
     }
 
-    @RabbitListener(queues="authentication")
-    public void processNewNode(String message) {
-        String[] messageArray = message.split(",");
-        if (nodeNames.containsKey(messageArray[1])) {
-            System.out.println(messageArray[1] + " with name " + messageArray[0] + " already connected before.");
-            return;
-        }
-
-        nodeNames.put(messageArray[1], messageArray[0]);
-        nodeSchedule.put(messageArray[1], 3500);
-
-        System.out.println("Users are :");
-        for (String name : nodeNames.keySet()) {
-            System.out.println(name + " with name : " + nodeNames.get(name) + " with schedule " + nodeSchedule.get(name));
-        }
-        createQueue(messageArray[1], messageArray[0]);
-    }
 
     private static void processByteArray(byte[] data) {
         try (OutputStream outputStream = new FileOutputStream("collectedData/received/receivedAS3DataExport.csv")) {
@@ -67,22 +122,10 @@ public class Controller {
         }
     }
 
-    private void createQueue(String ipAddress, String name) {
-        ChannelCallback<Void> queueDeclare = new ChannelCallback<Void>() {
-            @Override
-            public Void doInRabbit(Channel channel) throws Exception {
-                channel.queueDeclare(name + "-" + ipAddress, true, false, false, null);
-                channel.queueBind(name + "-" + ipAddress, rabbitTemplate.getExchange(), name + "-" + ipAddress);
-                return null;
-            }
-        };
-
-        rabbitTemplate.execute(queueDeclare);
-    }
 
     public boolean sendPullRequest(String ipAddress, String name) {
-        if (nodeNames.containsKey(ipAddress) && nodeNames.get(ipAddress).equals(name)) {
-            rabbitTemplate.convertAndSend(name + "-" + ipAddress, name);
+        if (nodeIdentity.containsKey(ipAddress) && nodeIdentity.get(ipAddress).equals(name)) {
+            rabbitTemplate.convertAndSend(name + "-" + ipAddress, "P," + nodeSecretKeys.get(ipAddress) + ",N");
             System.out.println("Successfully sent a pull request to " + ipAddress + " with name " + name);
             return true;
         }
@@ -94,7 +137,7 @@ public class Controller {
     }
 
     public Map<String,String> getNodeNames() {
-        return nodeNames;
+        return nodeIdentity;
     }
 
 

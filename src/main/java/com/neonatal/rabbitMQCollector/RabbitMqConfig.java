@@ -3,7 +3,6 @@ import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,20 +10,17 @@ import org.springframework.context.annotation.Profile;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Random;
 
 @Configuration
 public class RabbitMqConfig {
 
-    @Value("${rabbitmq.host}")
-    private String hostIP;
+    @Value("${rabbitmq.serverIP}")
+    private String serverIP;
 
-    @Value("${rabbitmq.port}")
+    @Value("${rabbitmq.serverPort}")
     private int serverPort;
 
-    @Profile("Node")
     @Bean(name="ID")
     String uniqueID() {
         String ID;
@@ -41,28 +37,13 @@ public class RabbitMqConfig {
     }
 
     @Profile("Controller")
-    @Bean(name="dataQueue")
-    Queue dataQueue() {
-        return new Queue("data", false);}
-
-    @Profile("Controller")
     @Bean(name="authenticationQueue")
     Queue authenticationQueue() {return new Queue("authentication", false);}
 
     @Profile("Controller")
     @Bean
     DirectExchange exchange() {
-        DirectExchange myExchange = new DirectExchange("exchange");
         return new DirectExchange("exchange");
-    }
-
-    @Profile("Controller")
-    @Bean
-    Declarables binding() {
-        return new Declarables(
-                BindingBuilder.bind(dataQueue()).to(exchange()).with("data"),
-                BindingBuilder.bind(authenticationQueue()).to(exchange()).with("authentication")
-        );
     }
 
     @Bean
@@ -74,7 +55,7 @@ public class RabbitMqConfig {
 
     @Bean
     public ConnectionFactory connectionFactory() {
-        CachingConnectionFactory connectionFactory = new CachingConnectionFactory(hostIP);
+        CachingConnectionFactory connectionFactory = new CachingConnectionFactory(serverIP);
         connectionFactory.setUsername("node");
         connectionFactory.setPassword("password");
         connectionFactory.setVirtualHost("/");
