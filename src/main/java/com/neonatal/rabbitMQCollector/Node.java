@@ -88,13 +88,12 @@ public class Node {
         if (messageArray[0].equals("A")) {
             System.out.println("Authentication response received");
 
-            if (authenticated == true || sentAuthentication == false) {
+            if (!sentAuthentication || authenticated) {
                 System.out.println("Discarding old authentication remnants");
                 return;
             }
-
             //Second index contains T or F for True or False
-            if (messageArray[1].equals("T")) {
+            else if (messageArray[1].equals("T")) {
                 System.out.println("Connected accepted by controller");
                 authenticated = true;
                 secretKey = messageArray[2];
