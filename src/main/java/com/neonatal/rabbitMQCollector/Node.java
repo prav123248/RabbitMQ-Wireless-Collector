@@ -43,7 +43,9 @@ public class Node {
     @Value("${rabbitmq.path}")
     private String csvPath;
 
-    private boolean authenticated = true;
+    private boolean sentAuthentication = false;
+    private boolean authenticated = false;
+
     private String secretKey;
     private String dataQueueName;
 
@@ -85,6 +87,12 @@ public class Node {
         //Authentication
         if (messageArray[0].equals("A")) {
             System.out.println("Authentication response received");
+
+            if (authenticated == true || sentAuthentication == false) {
+                System.out.println("Discarding old authentication remnants");
+                return;
+            }
+
             //Second index contains T or F for True or False
             if (messageArray[1].equals("T")) {
                 System.out.println("Connected accepted by controller");
