@@ -4,8 +4,13 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationContext;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.Timer;
+import java.util.TimerTask;
 
 @SpringBootApplication
 public class RabbitMqCollectorApplication {
@@ -22,9 +27,9 @@ public class RabbitMqCollectorApplication {
 			Controller myConsumer = context.getBean(Controller.class);
 
             while (true) {
+                System.out.println("<Controller> Enter an action :");
                 Scanner scanner = new Scanner(System.in);
                 String request = scanner.nextLine();
-                System.out.println("<Controller> Enter an action :");
                 if (request.equals("Pull all nodes")) {
                     pullAllNodes(myConsumer);
                 } else if (request.equals("Pull specific node")) {
@@ -48,8 +53,9 @@ public class RabbitMqCollectorApplication {
         String IP = scanner.nextLine();
         System.out.println("Enter name :");
         String name = scanner.nextLine();
+        System.out.println("Sending pull request to " + IP + ", " + name);
         consumer.sendPullRequest(IP, name);
-        System.out.println("Sent pull request to " + IP + ", " + name);
+
     }
 
     public static void pullAllNodes(Controller consumer) {
@@ -61,7 +67,32 @@ public class RabbitMqCollectorApplication {
     }
 
     public static void pullOnSchedule(Controller consumer) {
-        System.out.println("To DO");
+        listNodes(consumer);
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Enter IP address : ");
+        String IP = scanner.nextLine();
+        System.out.println("Enter name : ");
+        String name = scanner.nextLine();
+        System.out.println("When should the pull request happen (HH:MM)?");
+        String givenTime = scanner.nextLine();
+        String[] hourMinArray = givenTime.split(":");
+        LocalDateTime scheduledTime = LocalDateTime.now().withHour(Integer.parseInt(hourMinArray[0]))
+                .withMinute(Integer.parseInt(hourMinArray[1]))
+                .withSecond(0);
+
+        LocalDateTime now = LocalDateTime.now();
+        long secondsTillScheduled = now.until(scheduledTime, java.time.temporal.ChronoUnit.MILLIS);
+        System.out.println("Sending pull request in " + secondsTillScheduled + " seconds");
+
+        Timer timer = new Timer();
+        TimerTask task = new TimerTask() {
+            public void run() {
+                System.out.println("Sending scheduled pull request now (" + givenTime + ")");
+                consumer.sendPullRequest(IP, name);
+            }
+        };
+
+        timer.schedule(task, secondsTillScheduled);
     }
 
     public static void listNodes(Controller consumer) {

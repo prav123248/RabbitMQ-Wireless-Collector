@@ -63,6 +63,7 @@ public class Node {
         controllerListenerContainer();
         try {
             rabbitTemplate.convertAndSend("authentication" + "-" + controllerName, nodeIdentity);
+            sentAuthentication = true;
         } catch (AmqpMessageReturnedException e) {
             System.out.println("Message returned error - controller likely doesn't exist as the routing key was invalid");
         }
