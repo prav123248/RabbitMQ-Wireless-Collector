@@ -37,10 +37,6 @@ public class RabbitMqConfig {
     }
 
     @Profile("Controller")
-    @Bean(name="authenticationQueue")
-    Queue authenticationQueue() {return new Queue("authentication", false);}
-
-    @Profile("Controller")
     @Bean
     DirectExchange exchange() {
         return new DirectExchange("exchange");
