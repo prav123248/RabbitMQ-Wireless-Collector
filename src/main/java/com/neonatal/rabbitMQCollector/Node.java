@@ -3,6 +3,7 @@ import com.rabbitmq.client.Channel;
 import jakarta.annotation.PostConstruct;
 import org.springframework.amqp.core.AmqpMessageReturnedException;
 import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessagePostProcessor;
 import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.ChannelCallback;
@@ -93,7 +94,7 @@ public class Node {
             }
             else {
                 System.out.println("Connection refused by controller.");
-                System.exit(0);
+
             }
         }
         //Pull Request
@@ -126,7 +127,7 @@ public class Node {
         MessageProperties props = new MessageProperties();
         props.setHeader("nodeName", name);
         props.setHeader("nodeID", ID);
-
+        props.setContentType(MessageProperties.CONTENT_TYPE_BYTES);
         //Convert CSV into bytearray
         try {
             File csvFile = new File(csvPath);

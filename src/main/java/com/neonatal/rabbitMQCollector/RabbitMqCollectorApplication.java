@@ -20,14 +20,29 @@ public class RabbitMqCollectorApplication {
 		}
 		else {
 			Controller myConsumer = context.getBean(Controller.class);
-			//pullTester(myConsumer);
+
             while (true) {
-                pullSpecificNode(myConsumer);
+                Scanner scanner = new Scanner(System.in);
+                String request = scanner.nextLine();
+                System.out.println("<Controller> Enter an action :");
+                if (request.equals("Pull all nodes")) {
+                    pullAllNodes(myConsumer);
+                } else if (request.equals("Pull specific node")) {
+                    pullSpecificNode(myConsumer);
+                } else if (request.equals("Pull on schedule")) {
+                    pullOnSchedule(myConsumer);
+                } else if (request.equals("List")) {
+                    listNodes(myConsumer);
+                } else {
+                    System.out.println("Invalid input, retry");
+                }
             }
         }
 	}
 
     public static void pullSpecificNode(Controller consumer) {
+        Map<String, String> connectedNodes = consumer.getNodeNames();
+
         Scanner scanner = new Scanner(System.in);
         System.out.println("Enter IP address :");
         String IP = scanner.nextLine();
@@ -35,6 +50,25 @@ public class RabbitMqCollectorApplication {
         String name = scanner.nextLine();
         consumer.sendPullRequest(IP, name);
         System.out.println("Sent pull request to " + IP + ", " + name);
+    }
+
+    public static void pullAllNodes(Controller consumer) {
+        Map<String, String> connectedNodes = consumer.getNodeNames();
+        for (String ipAddress : connectedNodes.keySet()) {
+            consumer.sendPullRequest(ipAddress, connectedNodes.get(ipAddress));
+            System.out.println("Pulling data from " + ipAddress + " (" + connectedNodes.get(ipAddress) + ")");
+        }
+    }
+
+    public static void pullOnSchedule(Controller consumer) {
+        System.out.println("To DO");
+    }
+
+    public static void listNodes(Controller consumer) {
+        Map<String, String> connectedNodes = consumer.getNodeNames();
+        for (String ipAddress : connectedNodes.keySet()) {
+            System.out.println("Connected : " + ipAddress + " (" + connectedNodes.get(ipAddress) + ")");
+        }
     }
 
     //Controller pullRequest tester - pulls all connected nodes data every 5 seconds

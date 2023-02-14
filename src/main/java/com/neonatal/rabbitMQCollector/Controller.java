@@ -2,11 +2,14 @@ package com.neonatal.rabbitMQCollector;
 import com.rabbitmq.client.Channel;
 import jakarta.annotation.PostConstruct;
 import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.ChannelCallback;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter;
+import org.springframework.amqp.support.converter.SimpleMessageConverter;
+import org.springframework.amqp.utils.SerializationUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
@@ -58,10 +61,17 @@ public class Controller {
         SimpleMessageListenerContainer controllerListener = new SimpleMessageListenerContainer();
         controllerListener.setConnectionFactory(rabbitTemplate.getConnectionFactory());
         controllerListener.setQueueNames(queueName);
-        MessageListenerAdapter converter = new MessageListenerAdapter();
-        converter.setDefaultListenerMethod(methodListener);
-        converter.setDelegate(this);
-        controllerListener.setMessageListener(converter);
+        if (methodListener.equals("dataHandler")) {
+            controllerListener.setMessageListener(msg -> dataHandler(msg));
+        }
+        //Handles String instead of Messages
+        else {
+            MessageListenerAdapter adapter = new MessageListenerAdapter();
+            adapter.setDefaultListenerMethod(methodListener);
+            adapter.setDelegate(this);
+            adapter.setMessageConverter(new SimpleMessageConverter());
+            controllerListener.setMessageListener(adapter);
+        }
         controllerListener.start();
     }
 
@@ -94,20 +104,17 @@ public class Controller {
             rabbitTemplate.convertAndSend(messageArray[0] + "-" + messageArray[1], failedResponse);
         }
 
-        System.out.println("Users are :");
-        for (String id : nodeIdentity.keySet()) {
-            System.out.println(id + " with name " + nodeIdentity.get(id));
-        }
-
     }
 
     public void dataHandler(Message message) {
+
         Map<String, Object> headers = message.getMessageProperties().getHeaders();
         String nodeName = (String)headers.get("nodeName");
         String nodeID = (String)headers.get("nodeID");
 
         System.out.println("Received data by " + nodeName + " with the ID " + nodeID);
         byte[] data = message.getBody();
+
         processByteArray(data);
         System.out.println("Completed processing data and saved it back to a CSV file");
     }
