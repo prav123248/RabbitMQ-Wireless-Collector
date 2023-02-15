@@ -7,18 +7,21 @@ import org.springframework.amqp.core.MessagePostProcessor;
 import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.ChannelCallback;
+import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
 import java.nio.file.InvalidPathException;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.function.Consumer;
 
 
@@ -26,6 +29,7 @@ import java.util.function.Consumer;
 //Node represents a node in the system that collects data.
 @Profile("Node")
 @Service
+@DependsOn("adminInitialisation")
 public class Node {
 
     @Autowired
@@ -57,16 +61,11 @@ public class Node {
 
     @PostConstruct
     public void connectToController() {
-        String nodeIdentity = name + "," + ID;
+        String nodeIdentity = "A," + name + "," + ID;
         System.out.println("Sent authentication request");
         createQueue(name + "-" + ID);
         controllerListenerContainer();
-        try {
-            rabbitTemplate.convertAndSend("authentication" + "-" + controllerName, nodeIdentity);
-            sentAuthentication = true;
-        } catch (AmqpMessageReturnedException e) {
-            System.out.println("Message returned error - controller likely doesn't exist as the routing key was invalid");
-        }
+        authenticationRequest(nodeIdentity);
     }
 
     private void controllerListenerContainer() {
@@ -99,6 +98,7 @@ public class Node {
                 authenticated = true;
                 secretKey = messageArray[2];
                 dataQueueName = messageArray[3];
+                System.out.println("Data queue name is : " + dataQueueName);
             }
             else {
                 System.out.println("Connection refused by controller.");
@@ -127,6 +127,28 @@ public class Node {
                 System.out.println("Controller request not understood by node");
             }
 
+        }
+        //Transfer Request
+        else if (messageArray[0].equals("T") && messageArray[1].equals(secretKey)) {
+            System.out.println("Received request to transfer by controller");
+            sentAuthentication = false;
+            authenticated = false;
+            Scanner scanner = new Scanner(System.in);
+            System.out.println("Enter the controller to transfer to - ");
+            controllerName = scanner.nextLine();
+            authenticationRequest("A," + name + "," + ID);
+        }
+        else {
+            System.out.println("Received a response that is unrecognised");
+        }
+    }
+
+    public void authenticationRequest(String nodeIdentity) {
+        try {
+            rabbitTemplate.convertAndSend("authentication-" + controllerName, nodeIdentity);
+            sentAuthentication = true;
+        } catch (AmqpMessageReturnedException e) {
+            System.out.println("Message returned error - controller likely doesn't exist as the routing key was invalid");
         }
     }
 
@@ -182,4 +204,23 @@ public class Node {
         rabbitTemplate.execute(queueDeclare);
     }
 
+    public void disconnect() {
+        if (authenticated == true) {
+            String removalMessage = "L," + name + "," + ID + "," + secretKey;
+            rabbitTemplate.convertAndSend("authentication-" + controllerName, removalMessage);
+            System.out.println("Leave notice sent to controller.");
+            try {
+                RabbitAdmin rabbitAdmin = new RabbitAdmin(rabbitTemplate);
+                rabbitAdmin.deleteQueue(name + "-" + ID);
+                System.out.println("Deleted the node's queues.");
+            }
+            catch(Exception e) {
+                System.out.println("There was an issue deleting the node's queue. Please use the management interface on the server to delete it." + e.getMessage());
+            }
+        }
+        else {
+            System.out.println("Node is not connected to a controller already.");
+        }
+        System.exit(0);
+    }
 }

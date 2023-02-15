@@ -1,7 +1,9 @@
 package com.neonatal.rabbitMQCollector;
 import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
+import org.springframework.amqp.rabbit.connection.Connection;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -22,7 +24,7 @@ public class RabbitMqConfig {
     private int serverPort;
 
     @Bean(name="ID")
-    String uniqueID() {
+    public String uniqueID() {
         String ID;
         //Uses IP Address or Random number to uniquely identify Node
         try {
@@ -36,10 +38,18 @@ public class RabbitMqConfig {
         return ID;
     }
 
-    @Profile("Controller")
+    @Bean(name="adminInitialisation")
+    public RabbitAdmin rabbitAdmin(ConnectionFactory connect, DirectExchange exchange) {
+        RabbitAdmin rabbitAdmin = new RabbitAdmin(connect);
+        rabbitAdmin.setAutoStartup(true);
+        rabbitAdmin.declareExchange(exchange);
+        return rabbitAdmin;
+    }
+
     @Bean
-    DirectExchange exchange() {
-        return new DirectExchange("exchange");
+    public DirectExchange exchange() {
+        DirectExchange newExchange = new DirectExchange("exchange", true, false);
+        return newExchange;
     }
 
     @Bean
@@ -53,7 +63,7 @@ public class RabbitMqConfig {
     public ConnectionFactory connectionFactory() {
         CachingConnectionFactory connectionFactory = new CachingConnectionFactory(serverIP);
         connectionFactory.setUsername("node");
-        connectionFactory.setPassword("password");
+        connectionFactory.setPassword("guest");
         connectionFactory.setVirtualHost("/");
         connectionFactory.setPort(serverPort);
         return connectionFactory;

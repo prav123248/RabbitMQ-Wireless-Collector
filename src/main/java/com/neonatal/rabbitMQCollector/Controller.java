@@ -1,10 +1,12 @@
 package com.neonatal.rabbitMQCollector;
 import com.rabbitmq.client.Channel;
 import jakarta.annotation.PostConstruct;
+import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.ChannelCallback;
+import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter;
@@ -12,6 +14,7 @@ import org.springframework.amqp.support.converter.SimpleMessageConverter;
 import org.springframework.amqp.utils.SerializationUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
@@ -24,7 +27,11 @@ import java.util.*;
 //Controller represents the central point in the system where data is sent to.
 @Profile("Controller")
 @Service
+@DependsOn("adminInitialisation")
 public class Controller {
+
+    @Autowired
+    private DirectExchange exchange;
 
     @Autowired
     private RabbitTemplate rabbitTemplate;
@@ -77,33 +84,56 @@ public class Controller {
 
     public void authenticationHandler(String message) {
         String[] messageArray = message.split(",");
+        String requestType = messageArray[0];
+        String nodeName = messageArray[1];
+        String id = messageArray[2];
 
-        //Could be a possible security risk - but you need to fake your IP address for this and have credentials for RabbitMQ Server
-        //Need this if Node reconnects after already authenticating in the past
-        if (nodeIdentity.containsKey(messageArray[1])) {
-            System.out.println(messageArray[1] + " with name " + messageArray[0] + " already connected before.");
-            String successResponse = "A,T," + nodeSecretKeys.get(messageArray[1]) + ",data-" + name;
-            rabbitTemplate.convertAndSend(messageArray[0] + "-" + messageArray[1], successResponse);
-            return;
+        //L for Leaving/Disconnection
+        if (requestType.equals("L")) {
+            if (nodeIdentity.containsKey(id)) {
+                if (messageArray[3].equals(nodeSecretKeys.get(id))) {
+                    System.out.println("Secret Key verified - Node " + id + " (" + nodeIdentity.get(id) + ") is disconnecting.");
+                    nodeIdentity.remove(id);
+                }
+                else {
+                    System.out.println("Secret Key does not match - Node stays in the system");
+                }
+            }
+            else {
+                System.out.println("Node " + id + " with name " + nodeName + " is not connected but requested to disconnect.");
+            }
         }
+        else if (requestType.equals("A")) {
 
-        System.out.println("Node "  + messageArray[0] + " with ID " + messageArray[1] + " is attempting to connect to controller " + name);
-        System.out.println("Approve this connection? Type Y for Yes");
-        Scanner scanner = new Scanner(System.in);
+            //Could be a possible security risk - but you need to fake your IP address for this and have credentials for RabbitMQ Server
+            //Need this if Node reconnects after already authenticating in the past
+            if (nodeIdentity.containsKey(id)) {
+                System.out.println(id + " with name " + nodeName + " already connected before.");
+                String successResponse = "A,T," + nodeSecretKeys.get(id) + ",data-" + this.name;
+                rabbitTemplate.convertAndSend(nodeName + "-" + id, successResponse);
+                return;
+            }
 
-        String approval = (scanner.nextLine()).toUpperCase();
-        if (approval.equals("Y")) {
-            //Key is ID, Value is Name
-            nodeIdentity.put(messageArray[1], messageArray[0]);
-            nodeSecretKeys.put(messageArray[1], String.valueOf(new Random().nextInt()));
-            String successResponse = "A,T," + nodeSecretKeys.get(messageArray[1]) + ",data-" + name;
-            rabbitTemplate.convertAndSend(messageArray[0] + "-" + messageArray[1], successResponse);
+            System.out.println("Node "  + nodeName + " with ID " + id + " is attempting to connect to controller " + this.name);
+            System.out.println("Approve this connection? Type Y for Yes");
+            Scanner scanner = new Scanner(System.in);
+
+            String approval = (scanner.nextLine()).toUpperCase();
+            if (approval.equals("Y")) {
+                //Key is ID, Value is Name
+                nodeIdentity.put(id, nodeName);
+                nodeSecretKeys.put(id, String.valueOf(new Random().nextInt()));
+                String successResponse = "A,T," + nodeSecretKeys.get(id) + ",data-" + this.name;
+                rabbitTemplate.convertAndSend(nodeName + "-" + id, successResponse);
+            }
+            else {
+                String failedResponse = "A,F";
+                rabbitTemplate.convertAndSend(nodeName + "-" + id, failedResponse);
+            }
         }
         else {
-            String failedResponse = "A,F";
-            rabbitTemplate.convertAndSend(messageArray[0] + "-" + messageArray[1], failedResponse);
+            System.out.println("Received an invalid authentication request.");
         }
-
     }
 
     public void dataHandler(Message message) {
@@ -145,6 +175,24 @@ public class Controller {
 
     public Map<String,String> getNodeNames() {
         return nodeIdentity;
+    }
+
+    public void disconnect() {
+        //Send transfer request to all connected nodes
+        for (String nodeID : nodeIdentity.keySet()) {
+            rabbitTemplate.convertAndSend(nodeIdentity.get(nodeID) + "-" + nodeID, "T," + nodeSecretKeys.get(nodeID));
+        }
+        System.out.println("Sent transfer requests to all connected nodes.");
+        try {
+            RabbitAdmin rabbitAdmin = new RabbitAdmin(rabbitTemplate);
+            rabbitAdmin.deleteQueue("authentication-" + name);
+            rabbitAdmin.deleteQueue("data-" + name);
+            System.out.println("Deleted all of the controller's queues");
+        }
+        catch(Exception e) {
+            System.out.println("There was an issue deleting the controller's queues. Please use the management interface on the server to delete it." + e.getMessage());
+        }
+        System.exit(0);
     }
 
 

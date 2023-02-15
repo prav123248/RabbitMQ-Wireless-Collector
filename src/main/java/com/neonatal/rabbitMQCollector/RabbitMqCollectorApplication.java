@@ -4,31 +4,39 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationContext;
 
-import java.time.LocalDate;
+
+
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+
 import java.util.Map;
 import java.util.Scanner;
 import java.util.Timer;
 import java.util.TimerTask;
 
 @SpringBootApplication
+
 public class RabbitMqCollectorApplication {
 
 	public static void main(String[] args) {
 		ApplicationContext context = SpringApplication.run(RabbitMqCollectorApplication.class, args);
-
+        Scanner scanner = new Scanner(System.in);
 		String profile = System.getProperty("spring.profiles.active");
-		if (profile.equals("Node")) {
+		System.out.println(profile);
+        if (profile.equals("Node")) {
 			Node myProducer = context.getBean(Node.class);
-
+            while (true) {
+                System.out.println("<Node> Enter an action :");
+                String request = scanner.nextLine();
+                if (request.equals("Disconnect")) {
+                    myProducer.disconnect();
+                }
+            }
 		}
 		else {
 			Controller myConsumer = context.getBean(Controller.class);
 
             while (true) {
                 System.out.println("<Controller> Enter an action :");
-                Scanner scanner = new Scanner(System.in);
                 String request = scanner.nextLine();
                 if (request.equals("Pull all nodes")) {
                     pullAllNodes(myConsumer);
@@ -38,7 +46,11 @@ public class RabbitMqCollectorApplication {
                     pullOnSchedule(myConsumer);
                 } else if (request.equals("List")) {
                     listNodes(myConsumer);
-                } else {
+                }
+                else if (request.equals("Disconnect")) {
+                    myConsumer.disconnect();
+                }
+                else {
                     System.out.println("Invalid input, retry");
                 }
             }
