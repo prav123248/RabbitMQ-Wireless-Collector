@@ -20,6 +20,8 @@ import org.springframework.stereotype.Service;
 
 import java.io.*;
 import java.nio.file.InvalidPathException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.function.Consumer;
@@ -44,19 +46,20 @@ public class Node {
     @Value("${rabbitmq.controllerName}")
     private String controllerName;
 
-    @Value("${rabbitmq.path}")
-    private String csvPath;
-
     private boolean sentAuthentication = false;
     private boolean authenticated = false;
 
     private String secretKey;
     private String dataQueueName;
 
+    //Capture Object
+    private CaptureCSV collector;
+
     public Node() {
         if (name == null) {
             name = ID;
         }
+
     }
 
     @PostConstruct
@@ -99,6 +102,11 @@ public class Node {
                 secretKey = messageArray[2];
                 dataQueueName = messageArray[3];
                 System.out.println("Data queue name is : " + dataQueueName);
+                System.out.println("Started collecting data.");
+                collector = new CaptureCSV("src\\main\\java\\com\\neonatal\\rabbitMQCollector\\S5DataExport.csv", Arrays.asList(0,1,5,38));
+                Thread filterer = new Thread(collector);
+                filterer.start();
+                //Make sure this cannot be repeated with a false request.
             }
             else {
                 System.out.println("Connection refused by controller.");
@@ -160,6 +168,7 @@ public class Node {
         props.setContentType(MessageProperties.CONTENT_TYPE_BYTES);
         //Convert CSV into bytearray
         try {
+            String csvPath = informCollector();
             File csvFile = new File(csvPath);
             byte[] data = toByteArray(csvFile);
             Message message = new Message(data, props);
@@ -189,6 +198,20 @@ public class Node {
             return outputStream.toByteArray();
 
         }
+    }
+
+    private String informCollector() {
+        collector.setPullRequested(true);
+        while (collector.getPullRequested()) {
+            try {
+                wait();
+            }
+            catch(InterruptedException e) {
+                System.out.println("Error while waiting for Collector." + e.getMessage());
+            }
+        }
+
+        return collector.getPreviousExport();
     }
 
     private void createQueue(String queueName) {

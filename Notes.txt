@@ -29,3 +29,55 @@ Make sure remote users (raspberry PIs) use the node user (or any with right perm
 Use a different user than guest or Login will fail. Make a new user and give all permissions.
 
 (Use bad toByteArray and switch to the good one for project report, ctrl+f approach 1/2 in Project Chat 2)
+
+Notes for testing both Node/Controller locally :
+-Dserver.port=8081
+Use this in the JVM arguments to change the port from 8080 to run nodes and controllers on the same machine separately. One of the instances can use default 8080.
+
+
+Raspberry PI setup process :
+1. Download github repo
+2. Install maven with "sudo apt-get install maven"
+3. Download openjdk-17 using "sudo apt install openjdk-17-jdk"
+4. Run :
+"mvn exec:java -Dexec.mainClass="com.neonatal.rabbitMQCollector.RabbitMqCollectorApplication" -Dexec.args="" -Dspring.profiles.active="Node"
+->Change the Node in DSpring.profiles.active to controller.
+5. May need to use mvn clean compile if changes are made after first run of mvn exec 
+
+
+Setup for Installing VSCapture on Raspberry PI (Using Dotnet inc Net6 and Net5): 
+1. Download .Net6.0 SDK Linux Arm64 and .Net5.0 (going to explain using both as Core needs Net5)
+---->You should get a tar.gz file which you extract into a folder (do for both).
+---->Example path : /home/pravin/Downloads/net6dotnet and /home/pravin/Downloads/net5dotnet
+2. Add the folder to the path
+---->Run command "sudo nano ~/.profile"
+---->Don't remove or edit existing stuff. At the bottom, add the line "export PATH=$PATH:/home/pravin/Downloads/net6dotnet" (use your path, I included my example)
+---->This adds the created dotnet net6 folder to the existing path.
+---->Below that line, add "export netv5=/home/pravin/Downloads/net5dotnet" (user your path for Net5)
+---->We do this because the Path will select the first dotnet listed (which is our v6) so listing v5 afterwards won't mean it will be used. 
+---->When you need to use v5 to build/run, instead of running dotnet, run "$netv5/dotnet <command>". This will run version 5 instead of version 6. By default, we use v6 when running dotnet.
+3.Reboot the Raspberry PI with "sudo reboot" so changes take affect.
+4.Open a terminal anywhere and type "dotnet", you should see text that isn't an error. (You can do dotnet --version and $netv5/dotnet --version if you want)
+5.From the SourceForge files page, there are several versions of VSCapture that are either Source or Binary files.
+----> Ones relevant to us are GE Datex S/5 but this works with any of them. There's Core and Wave inside GE Datex S/5.
+----> Whichever you choose, download and extract everything to a folder.
+----> Open a terminal in the extracted folder.
+----> (Ignore this if you downloaded a Binary) Source means you have to compile and create a binary build.  
+--------->To do this :
+--------->Run "dotnet build ./name.sln" where name is the name of the sln file. If the build succeeds, you should have a bin folder which is the binary. CD into the bin folder until you see dll files. Follow the Binary step now. If there is no sln file and you have sproj files instead, just run "dotnet build" in that directory. (Remember that if you require net5, to use $netv5/dotnet)
+----> For Binary, run "dotnet name.dll" where name is the name of the dll file.
+
+Note - Must use USB 4 
+https://sourceforge.net/p/vscapture/discussion/general/thread/4c2c225ff5/
+https://sourceforge.net/p/vscapture/discussion/general/thread/4c2c225ff5/
+
+Use Sudo with Raspberry PI command
+https://sourceforge.net/p/vscapture/discussion/general/thread/3e7a8ecddc/
+
+Other GE related forum posts :
+https://sourceforge.net/p/vscapture/discussion/general/thread/4756dd15/
+https://sourceforge.net/p/vscapture/discussion/general/thread/c8fbf713a9/
+https://sourceforge.net/p/vscapture/discussion/general/thread/3743c7e124/ (less relevant, about charts)
+https://sourceforge.net/p/vscapture/discussion/general/thread/71b7c290/ (discussion of GE export)
+https://sourceforge.net/p/vscapture/discussion/general/thread/c6aece91de/ (how LAN doesn't work for GE)
+https://sourceforge.net/p/vscapture/discussion/general/thread/a58e9e1e71/ (Person trying to get GE expor to work)
