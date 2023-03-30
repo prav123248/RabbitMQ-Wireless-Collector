@@ -29,6 +29,10 @@ public class RabbitMqCollectorApplication {
                 if (request.equals("Disconnect")) {
                     myProducer.disconnect();
                 }
+                else if (request.equals("Shutdown")) {
+                    myProducer.shutdown();
+                    System.exit(0);
+                }
             }
 		}
 		else {

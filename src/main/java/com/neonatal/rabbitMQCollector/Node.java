@@ -256,4 +256,10 @@ public class Node {
         }
         System.exit(0);
     }
+
+    public void shutdown() {
+        disconnect();
+        collector.shutdown();
+        System.out.println("Successfully shutdown");
+    }
 }

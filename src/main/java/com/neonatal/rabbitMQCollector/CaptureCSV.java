@@ -57,7 +57,7 @@ public class CaptureCSV implements Runnable{
         while (true) {
             if (shutdown) {
                 closeFile(false);
-                System.out.println("Successfully saved current export file and shut down");
+                System.out.println("Successfully saved current export file");
                 break;
             }
             else if (pullController.getPull()) {
@@ -99,11 +99,14 @@ public class CaptureCSV implements Runnable{
         try {
             channel.close();
             readOnlyFile.close();
-            System.out.println("Capture processing closed");
+            System.out.println("Capture processing closed and filterer sucessfully shutdown");
+            System.exit(0);
         }
         catch(IOException e) {
             System.out.println("Error while closing processed output files.");
         }
+
+
     }
 
     private void processLine(String line) {
