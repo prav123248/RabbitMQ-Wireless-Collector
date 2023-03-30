@@ -1,4 +1,5 @@
 package com.neonatal.rabbitMQCollector;
+
 import com.rabbitmq.client.Channel;
 import jakarta.annotation.PostConstruct;
 import org.springframework.amqp.core.DirectExchange;
@@ -141,17 +142,18 @@ public class Controller {
         Map<String, Object> headers = message.getMessageProperties().getHeaders();
         String nodeName = (String)headers.get("nodeName");
         String nodeID = (String)headers.get("nodeID");
+        String exportNumber = (String)headers.get("exportNumber");
 
         System.out.println("Received data by " + nodeName + " with the ID " + nodeID);
         byte[] data = message.getBody();
 
-        processByteArray(data);
+        processByteArray(data, exportNumber);
         System.out.println("Completed processing data and saved it back to a CSV file");
     }
 
 
-    private static void processByteArray(byte[] data) {
-        try (OutputStream outputStream = new FileOutputStream("collectedData/received/receivedAS3DataExport.csv")) {
+    private static void processByteArray(byte[] data, String exportNumber) {
+        try (OutputStream outputStream = new FileOutputStream("collectedData/received/receivedAS3DataExport" + exportNumber + ".csv")) {
             outputStream.write(data);
         }
         catch(IOException e) {

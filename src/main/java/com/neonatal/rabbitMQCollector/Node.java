@@ -52,8 +52,9 @@ public class Node {
     private String secretKey;
     private String dataQueueName;
 
-    //Capture Object
+    //Capture & PullSignal Object
     private CaptureCSV collector;
+    private PullSignal pullController;
 
     public Node() {
         if (name == null) {
@@ -103,7 +104,8 @@ public class Node {
                 dataQueueName = messageArray[3];
                 System.out.println("Data queue name is : " + dataQueueName);
                 System.out.println("Started collecting data.");
-                collector = new CaptureCSV("src\\main\\java\\com\\neonatal\\rabbitMQCollector\\S5DataExport.csv", Arrays.asList(0,1,5,38));
+                pullController = new PullSignal("src\\main\\java\\com\\neonatal\\rabbitMQCollector\\filteredExport");
+                collector = new CaptureCSV("src\\main\\java\\com\\neonatal\\rabbitMQCollector\\S5DataExport.csv", Arrays.asList(0,1,6), pullController);
                 Thread filterer = new Thread(collector);
                 filterer.start();
                 //Make sure this cannot be repeated with a false request.
@@ -165,10 +167,11 @@ public class Node {
         MessageProperties props = new MessageProperties();
         props.setHeader("nodeName", name);
         props.setHeader("nodeID", ID);
+        props.setHeader("exportNumber", pullController.getPullCount().toString());
         props.setContentType(MessageProperties.CONTENT_TYPE_BYTES);
         //Convert CSV into bytearray
         try {
-            String csvPath = informCollector();
+            String csvPath = obtainFilename();
             File csvFile = new File(csvPath);
             byte[] data = toByteArray(csvFile);
             Message message = new Message(data, props);
@@ -176,12 +179,19 @@ public class Node {
         }
         catch(FileNotFoundException e)  {
             System.out.println("File wasn't found (node).");
+            return;
         }
         catch(InvalidPathException e) {
             System.out.print("Path is invalid (node).");
+            return;
         }
         catch(IOException e) {
             System.out.println("File error occurred (node).");
+            return;
+        }
+        catch(IllegalStateException e) {
+            System.out.println(e.getMessage());
+            return;
         }
 
         System.out.println("Successfully sent data");
@@ -200,18 +210,18 @@ public class Node {
         }
     }
 
-    private String informCollector() {
-        collector.setPullRequested(true);
-        while (collector.getPullRequested()) {
-            try {
-                wait();
+    private String obtainFilename() {
+        synchronized (pullController) {
+            pullController.setPull(true);
+            while (pullController.getPull()) {
+                try {
+                    pullController.wait();
+                } catch (InterruptedException e) {
+                    System.out.println("Error while waiting for Collector." + e.getMessage());
+                }
             }
-            catch(InterruptedException e) {
-                System.out.println("Error while waiting for Collector." + e.getMessage());
-            }
+            return pullController.nextExport();
         }
-
-        return collector.getPreviousExport();
     }
 
     private void createQueue(String queueName) {

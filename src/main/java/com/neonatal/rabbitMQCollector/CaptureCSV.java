@@ -10,7 +10,6 @@ import java.util.List;
 public class CaptureCSV implements Runnable{
 
     //Capture VS related (Input)
-    private boolean pullRequested = false;
     private boolean shutdown = false;
     private String captureFileName;
     private int bufferSize = 1024;
@@ -18,20 +17,21 @@ public class CaptureCSV implements Runnable{
 
     //Filtered export related (Output)
     private List<Integer> params;
-    private String outputFileName = "src\\main\\java\\com\\neonatal\\rabbitMQCollector\\filteredExport";
-    private int pulledCount = 0;
     private BufferedWriter writer;
+    private PullSignal pullController;
 
-    public CaptureCSV(String csv, List<Integer> selectedParams) {
+    public CaptureCSV(String csv, List<Integer> selectedParams, PullSignal puller) {
         captureFileName = csv;
         params = selectedParams;
+        this.pullController = puller;
         Collections.sort(params);
         openNewOutput();
     }
 
-    public CaptureCSV(String csv,List<Integer> selectedParams, int stringBuffer, int processInterval) {
+    public CaptureCSV(String csv,List<Integer> selectedParams, int stringBuffer, int processInterval, PullSignal puller) {
         captureFileName = csv;
         params = selectedParams;
+        pullController = puller;
         Collections.sort(params);
         bufferSize = stringBuffer;
         sleepInterval = processInterval;
@@ -57,15 +57,16 @@ public class CaptureCSV implements Runnable{
         while (true) {
             if (shutdown) {
                 closeFile(false);
-                System.out.println("Successfully saved current file and shut down");
+                System.out.println("Successfully saved current export file and shut down");
                 break;
             }
-            else if (pullRequested) {
+            else if (pullController.getPull()) {
                 //Close current file and increment output
-                closeFile(true);
-                pullRequested = false;
-                pulledCount += 1;
-                notify();
+                synchronized (pullController) {
+                    closeFile(true);
+                    pullController.setPull(false);
+                    pullController.notify();
+                }
             } else {
                 try {
                     if (channel.read(buffer) != -1) {
@@ -87,7 +88,7 @@ public class CaptureCSV implements Runnable{
 
                 }
                 catch (IOException e) {
-                    System.out.println("An error occurred with an IO Operation when reading the capture file");
+                    System.out.println("An error occurred with an IO Operation when reading the capture file" + e.getMessage());
                 }
                 catch(InterruptedException e) {
                     System.out.println("Capturing process element was interrupted during sleep");
@@ -123,6 +124,7 @@ public class CaptureCSV implements Runnable{
         try {
             writer.write(filteredLine);
             writer.newLine();
+            writer.flush();
         }
         catch(IOException e) {
             System.out.println("An IOException occurred when processing a line.");
@@ -130,9 +132,9 @@ public class CaptureCSV implements Runnable{
     }
 
     private void openNewOutput() {
-        pulledCount += 1;
+
         try {
-            File newOutput = new File(outputFileName + pulledCount + ".csv");
+            File newOutput = new File(pullController.newCurrentExport());
             writer = new BufferedWriter(new FileWriter(newOutput, true));
         }
         catch(IOException e) {
@@ -160,22 +162,8 @@ public class CaptureCSV implements Runnable{
 
     }
 
-    public void setPullRequested(boolean pull) {
-        pullRequested = pull;
-    }
-
-    public boolean getPullRequested() {return pullRequested;}
-
     public void shutdown() {
         shutdown=true;
     }
 
-    public String getPreviousExport() {
-        if (pulledCount == 1) {
-            throw new IllegalStateException("There is no previous exported file. Currently capturing data into the first file. Please pull first to retrieve the name");
-        }
-        else {
-            return outputFileName + (pulledCount-1) + ".csv";
-        }
-    }
 }

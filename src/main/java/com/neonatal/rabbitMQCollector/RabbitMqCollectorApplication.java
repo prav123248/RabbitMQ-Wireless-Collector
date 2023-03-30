@@ -14,7 +14,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 @SpringBootApplication
-
 public class RabbitMqCollectorApplication {
 
 	public static void main(String[] args) {
