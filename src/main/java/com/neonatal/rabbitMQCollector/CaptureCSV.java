@@ -99,8 +99,7 @@ public class CaptureCSV implements Runnable{
         try {
             channel.close();
             readOnlyFile.close();
-            System.out.println("Capture processing closed and filterer sucessfully shutdown");
-            System.exit(0);
+            System.out.println("Capture processing closed and filterer successfully shutdown");
         }
         catch(IOException e) {
             System.out.println("Error while closing processed output files.");

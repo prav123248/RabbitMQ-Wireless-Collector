@@ -258,8 +258,8 @@ public class Node {
     }
 
     public void shutdown() {
-        disconnect();
         collector.shutdown();
+        disconnect();
         System.out.println("Successfully shutdown");
     }
 }
