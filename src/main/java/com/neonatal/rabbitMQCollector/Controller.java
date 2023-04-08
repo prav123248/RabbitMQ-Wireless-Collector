@@ -19,9 +19,7 @@ import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.util.*;
 
 //Controller class responsible for processing received data and controlling the communication schedule
@@ -39,6 +37,9 @@ public class Controller {
 
     @Value("${rabbitmq.name}")
     private String name;
+
+    @Autowired
+    private DatabaseOperator connector;
 
     //Data on Connected Nodes
     private Map<String, String> nodeIdentity = new HashMap<>();
@@ -147,11 +148,27 @@ public class Controller {
         System.out.println("Received data by " + nodeName + " with the ID " + nodeID);
         byte[] data = message.getBody();
 
-        processByteArray(data, exportNumber);
-        System.out.println("Completed processing data and saved it back to a CSV file");
+        System.out.println("Added " + saveToDB(data, exportNumber) + " lines to the database successfully");
+
     }
 
+    //DB Export
+    private int saveToDB(byte[] data, String exportNumber) {
+        BufferedReader byteReader = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(data)));
+        String line;
+        Integer count = 0;
+        try {
+            while ((line = byteReader.readLine()) != null) {
+                count += connector.insert(line);
+            }
+        }
+        catch(IOException e) {
+            System.out.println("An error occurred while writing to the database " + e.getMessage());
+        }
+        return count;
+    }
 
+    //CSV Export (Unused at the moment)
     private static void processByteArray(byte[] data, String exportNumber) {
         try (OutputStream outputStream = new FileOutputStream("collectedData/received/receivedAS3DataExport" + exportNumber + ".csv")) {
             outputStream.write(data);
