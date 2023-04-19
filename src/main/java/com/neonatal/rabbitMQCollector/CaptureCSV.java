@@ -16,6 +16,8 @@ public class CaptureCSV implements Runnable{
     private int bufferSize = 1024;
     private int sleepInterval = 5;
     private boolean pause = false;
+    private String currentPatient = "";
+    private int patientID = 0;
 
     //Filtered export related (Output)
     private List<Integer> params;
@@ -151,16 +153,19 @@ public class CaptureCSV implements Runnable{
 
     private void openNewOutput() {
 
-        try {
-            File newOutput = new File(pullController.newCurrentExport());
-            writer = new BufferedWriter(new FileWriter(newOutput, true));
-        }
-        catch(IOException e) {
-            System.out.println(e.getMessage());
-            System.out.println("Error opening FileWriter for new filtered export file");
-            System.out.println("Directory does not exist or insufficient space or IO Error when creating/accessing file");
-            System.out.println("Please rerun");
-            System.exit(0);
+        while (true) {
+            try {
+                File newOutput = new File(pullController.newCurrentExport());
+                writer = new BufferedWriter(new FileWriter(newOutput, true));
+                break;
+            } catch (IOException e) {
+                System.out.println(e.getMessage());
+                System.out.println("Error opening FileWriter for new filtered export file");
+                System.out.println("Directory does not exist or insufficient space or IO Error when creating/accessing file");
+                Scanner scan = new Scanner(System.in);
+                System.out.println("Enter a key to retry - if file is already open this will increment to another file");
+                scan.nextLine();
+            }
         }
     }
 

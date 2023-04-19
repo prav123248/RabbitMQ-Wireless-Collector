@@ -48,6 +48,7 @@ public class Node {
 
     private boolean sentAuthentication = false;
     private boolean authenticated = false;
+    private boolean initialConnection = true;
 
     private String secretKey;
     private String dataQueueName;
@@ -103,12 +104,19 @@ public class Node {
                 secretKey = messageArray[2];
                 dataQueueName = messageArray[3];
                 System.out.println("Data queue name is : " + dataQueueName);
-                System.out.println("Started collecting data.");
-                pullController = new PullSignal("src\\main\\java\\com\\neonatal\\rabbitMQCollector\\filteredExport");
-                collector = new CaptureCSV("src\\main\\java\\com\\neonatal\\rabbitMQCollector\\S5DataExport.csv", Arrays.asList(0,1,6), pullController);
-                Thread filterer = new Thread(collector);
-                filterer.start();
-                //Make sure this cannot be repeated with a false request.
+
+                if (initialConnection) {
+                    pullController = new PullSignal("src\\main\\java\\com\\neonatal\\rabbitMQCollector\\filteredExport");
+                    collector = new CaptureCSV("src\\main\\java\\com\\neonatal\\rabbitMQCollector\\S5DataExport.csv", Arrays.asList(0, 1, 6), pullController);
+                    Thread filterer = new Thread(collector);
+                    filterer.start();
+                    initialConnection = false;
+                    System.out.println("Started collecting data.");
+                }
+                else {
+                    System.out.println("Reconnected to a Controller. Still continuing to collect data.");
+                }
+
             }
             else {
                 System.out.println("Connection refused by controller.");
