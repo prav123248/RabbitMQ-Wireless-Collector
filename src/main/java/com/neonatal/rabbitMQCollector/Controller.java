@@ -44,6 +44,7 @@ public class Controller {
     //Data on Connected Nodes
     private Map<String, String> nodeIdentity = new HashMap<>();
     private Map<String, String> nodeSecretKeys = new HashMap<>();
+    private Map<String, String> currentPatientID = new HashMap<>();
 
     //Schedule Manager
     private scheduleManager scheduler = new scheduleManager();
@@ -151,18 +152,28 @@ public class Controller {
         System.out.println("Received data by " + nodeName + " with the ID " + nodeID);
         byte[] data = message.getBody();
 
-        System.out.println("Added " + saveToDB(data, exportNumber) + " lines to the database successfully");
+        System.out.println("Added " + saveToDB(data, exportNumber, nodeID) + " lines to the database successfully");
 
     }
 
     //DB Export
-    private int saveToDB(byte[] data, String exportNumber) {
+    private int saveToDB(byte[] data, String exportNumber, String nodeID) {
         BufferedReader byteReader = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(data)));
         String line;
+        String idCheck;
         Integer count = 0;
+
+        if (!currentPatientID.containsKey(nodeID)) {
+            currentPatientID.put(nodeID, "");
+        }
+
         try {
             while ((line = byteReader.readLine()) != null) {
-                count += connector.insert(line);
+                idCheck = line.split(",")[0];
+                if (!idCheck.equals("")) {
+                    currentPatientID.put(nodeID, idCheck);
+                }
+                count += connector.insert(currentPatientID.get(nodeID) + "," + line.substring(line.indexOf(",")+1));
             }
         }
         catch(IOException e) {

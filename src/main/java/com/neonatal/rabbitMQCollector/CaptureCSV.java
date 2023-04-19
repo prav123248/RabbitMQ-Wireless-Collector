@@ -3,10 +3,7 @@ package com.neonatal.rabbitMQCollector;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 
 public class CaptureCSV implements Runnable{
 
@@ -16,8 +13,8 @@ public class CaptureCSV implements Runnable{
     private int bufferSize = 1024;
     private int sleepInterval = 5;
     private boolean pause = false;
-    private String currentPatient = "";
-    private int patientID = 0;
+    private UUID patientID;
+    private boolean patientWriteID= true;
 
     //Filtered export related (Output)
     private List<Integer> params;
@@ -30,6 +27,7 @@ public class CaptureCSV implements Runnable{
         this.pullController = puller;
         Collections.sort(params);
         openNewOutput();
+        patientID = UUID.randomUUID();
     }
 
     public CaptureCSV(String csv,List<Integer> selectedParams, int stringBuffer, int processInterval, PullSignal puller) {
@@ -76,6 +74,7 @@ public class CaptureCSV implements Runnable{
                     closeFile(true);
                     pullController.setPull(false);
                     pullController.notify();
+                    patientWriteID = true;
                 }
             } else {
                 try {
@@ -127,7 +126,16 @@ public class CaptureCSV implements Runnable{
     public boolean getPause() {return pause;}
 
     private void processLine(String line) {
-        String filteredLine = "";
+        String filteredLine;
+        if (patientWriteID) {
+            filteredLine = patientID.toString() + ",";
+            patientWriteID = false;
+        }
+        else {
+            filteredLine = ",";
+        }
+
+
         String[] lineArray = line.split(",");
 
         if (!(params.get(params.size()-1) < lineArray.length)) {
@@ -183,6 +191,11 @@ public class CaptureCSV implements Runnable{
 
         return;
 
+    }
+
+    public void switchPatient() {
+        patientID = UUID.randomUUID();
+        patientWriteID = true;
     }
 
     public void shutdown() {

@@ -24,11 +24,11 @@ public class DatabaseOperator {
     private String headers;
     private boolean tableCreated = false;
 
-
     public DatabaseOperator() {}
 
     public void createTable(String line) {
         String[] columnNames = line.split(",");
+        columnNames[0] = "PatientCode";
         StringBuilder command = new StringBuilder();
         StringBuilder headerCommand = new StringBuilder();
         command.append("CREATE TABLE IF NOT EXISTS ").append(tableName).append(" (");

@@ -267,6 +267,10 @@ public class Node {
         }
     }
 
+    public void switchPatient() {
+        collector.switchPatient();
+    }
+
     public void connect(String controller) {
         if (authenticated) {
             System.out.println("Node is already connected. Please disconnect first.");

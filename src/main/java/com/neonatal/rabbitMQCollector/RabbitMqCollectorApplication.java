@@ -40,6 +40,10 @@ public class RabbitMqCollectorApplication {
                 else if (request.equals("Resume")) {
                     myProducer.pauseControl(false);
                 }
+                else if (request.equals("Switch Patient")) {
+                    myProducer.switchPatient();
+                    System.out.println("Patient switched");
+                }
                 else if (request.equals("Shutdown")) {
                     myProducer.shutdown();
                     System.exit(0);
