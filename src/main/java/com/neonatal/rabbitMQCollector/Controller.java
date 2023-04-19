@@ -45,6 +45,9 @@ public class Controller {
     private Map<String, String> nodeIdentity = new HashMap<>();
     private Map<String, String> nodeSecretKeys = new HashMap<>();
 
+    //Schedule Manager
+    private scheduleManager scheduler = new scheduleManager();
+
     @PostConstruct
     public void setupQueues() {
         createQueue("authentication-" + name);
@@ -190,6 +193,14 @@ public class Controller {
             return false;
         }
 
+    }
+
+    public void schedulePullInterval(String ipAddress, String name, long start, long interval) {
+        scheduler.schedulePull(this, ipAddress,name,start,interval);
+    }
+
+    public void cancelSchedule(String ipAddress, String name, boolean periodic) {
+        scheduler.cancelSchedule(ipAddress,name,periodic);
     }
 
     public Map<String,String> getNodeNames() {

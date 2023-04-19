@@ -29,6 +29,17 @@ public class RabbitMqCollectorApplication {
                 if (request.equals("Disconnect")) {
                     myProducer.disconnect();
                 }
+                else if (request.equals("Connect")) {
+                    System.out.println("Enter the name of the controller to connect to : ");
+                    String chosen = scanner.nextLine();
+                    myProducer.connect(chosen);
+                }
+                else if (request.equals("Pause")) {
+                    myProducer.pauseControl(true);
+                }
+                else if (request.equals("Resume")) {
+                    myProducer.pauseControl(false);
+                }
                 else if (request.equals("Shutdown")) {
                     myProducer.shutdown();
                     System.exit(0);
@@ -49,6 +60,9 @@ public class RabbitMqCollectorApplication {
                     pullOnSchedule(myConsumer);
                 } else if (request.equals("List")) {
                     listNodes(myConsumer);
+                }
+                else if (request.equals("Cancel")) {
+                    cancelSchedule(myConsumer);
                 }
                 else if (request.equals("Disconnect")) {
                     myConsumer.disconnect();
@@ -73,6 +87,23 @@ public class RabbitMqCollectorApplication {
 
     }
 
+    public static void cancelSchedule(Controller consumer) {
+
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Enter IP address : ");
+        String IP = scanner.nextLine();
+        System.out.println("Enter name : ");
+        String name = scanner.nextLine();
+        System.out.println("Is this a periodic task? (Y for yes and N for no)");
+        String periodic = scanner.nextLine();
+        boolean periodicBool = false;
+        if (periodic.equals("Y") || periodic.equals("y")) {
+            periodicBool = true;
+        }
+        consumer.cancelSchedule(IP, name, periodicBool);
+
+    }
+
     public static void pullAllNodes(Controller consumer) {
         Map<String, String> connectedNodes = consumer.getNodeNames();
         for (String ipAddress : connectedNodes.keySet()) {
@@ -90,6 +121,9 @@ public class RabbitMqCollectorApplication {
         String name = scanner.nextLine();
         System.out.println("When should the pull request happen (HH:MM)?");
         String givenTime = scanner.nextLine();
+        System.out.println("What periodic interval should this pull request occur at? Enter 0 for non-periodic/single run in milliseconds");
+        String interval = scanner.nextLine();
+
         String[] hourMinArray = givenTime.split(":");
         LocalDateTime scheduledTime = LocalDateTime.now().withHour(Integer.parseInt(hourMinArray[0]))
                 .withMinute(Integer.parseInt(hourMinArray[1]))
@@ -97,19 +131,25 @@ public class RabbitMqCollectorApplication {
 
         LocalDateTime now = LocalDateTime.now();
         long secondsTillScheduled = now.until(scheduledTime, java.time.temporal.ChronoUnit.MILLIS);
-        System.out.println("Sending pull request in " + secondsTillScheduled + " seconds");
+        System.out.println("Sending pull request in " + secondsTillScheduled/1000 + " seconds");
 
-        Timer timer = new Timer();
-        TimerTask task = new TimerTask() {
-            public void run() {
-                System.out.println("Sending scheduled pull request now (" + givenTime + ")");
-                consumer.sendPullRequest(IP, name);
-            }
-        };
+        long intervalPeriod = 0;
+        try {
+            intervalPeriod = Long.parseLong(interval);
+        }
+        catch(NumberFormatException e) {
+            System.out.println("Interval value is invalid, not proceeding with the schedule. Please make sure it is numeric.");
+        }
 
-        timer.schedule(task, secondsTillScheduled);
+        if (interval.equals("0")) {
+            System.out.println("Performing single run schedule");
+            consumer.schedulePullInterval(IP, name, secondsTillScheduled, 0);
+        }
+        else {
+            System.out.println("Performing periodic run schedule");
+            consumer.schedulePullInterval(IP, name, secondsTillScheduled, intervalPeriod);
+        }
     }
-
     public static void listNodes(Controller consumer) {
         Map<String, String> connectedNodes = consumer.getNodeNames();
         for (String ipAddress : connectedNodes.keySet()) {

@@ -74,6 +74,21 @@ https://sourceforge.net/p/vscapture/discussion/general/thread/4c2c225ff5/
 Use Sudo with Raspberry PI command
 https://sourceforge.net/p/vscapture/discussion/general/thread/3e7a8ecddc/
 
+Setting up the MySQL server : 
+1.Use MySQL installer to install the server and MySQL workbench.
+2.Make a database using workbench and provide the URL in application.properties along with valid username/password
+3.Run the controller
+
+Running the MySQL server :
+1. Make sure you have these configurations in application.properties : 
+#Needed for only Controller database communication
+spring.datasource.url=jdbc:mysql://127.0.0.1:3306/neonatal
+spring.datasource.username=root
+spring.datasource.password=password
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+2. Create a separate database in MySQL workbench called neonatal with the login (make sure whatever it is matches what is in application.properties).
+3. Table doesn't need to exist, that will be created by the system.
+
 Other GE related forum posts :
 https://sourceforge.net/p/vscapture/discussion/general/thread/4756dd15/
 https://sourceforge.net/p/vscapture/discussion/general/thread/c8fbf713a9/

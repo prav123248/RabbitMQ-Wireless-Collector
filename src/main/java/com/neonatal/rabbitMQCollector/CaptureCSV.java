@@ -6,6 +6,7 @@ import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Scanner;
 
 public class CaptureCSV implements Runnable{
 
@@ -14,6 +15,7 @@ public class CaptureCSV implements Runnable{
     private String captureFileName;
     private int bufferSize = 1024;
     private int sleepInterval = 5;
+    private boolean pause = false;
 
     //Filtered export related (Output)
     private List<Integer> params;
@@ -41,14 +43,20 @@ public class CaptureCSV implements Runnable{
     public void run() {
         File file = new File(captureFileName);
         RandomAccessFile readOnlyFile;
-        try {
-            readOnlyFile = new RandomAccessFile(file, "r");
-        } catch (FileNotFoundException e) {
-            System.out.println(e.getMessage());
-            System.out.println("File not found, exiting, try again");
-            return;
+        while (true) {
+            try {
+                readOnlyFile = new RandomAccessFile(file, "r");
+                break;
+            } catch (FileNotFoundException e) {
+                System.out.println(e.getMessage());
+                System.out.println("File not found, exiting, try again");
+                Scanner scan = new Scanner(System.in);
+                System.out.println("Enter any key when capture has started.");
+                scan.nextLine();
+            }
         }
 
+        System.out.println("Capture file located.");
 
         FileChannel channel = readOnlyFile.getChannel();
         ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
@@ -74,7 +82,9 @@ public class CaptureCSV implements Runnable{
                         while (buffer.hasRemaining()) {
                             char nextChar = (char) buffer.get();
                             if (nextChar == '\n') {
-                                processLine(nextLine.toString());
+                                if (!pause) {
+                                    processLine(nextLine.toString());
+                                }
                                 nextLine.setLength(0);
                             } else {
                                 nextLine.append(nextChar);
@@ -107,6 +117,12 @@ public class CaptureCSV implements Runnable{
 
 
     }
+
+    public void setPause(boolean pauseBool) {
+        pause = pauseBool;
+    }
+
+    public boolean getPause() {return pause;}
 
     private void processLine(String line) {
         String filteredLine = "";

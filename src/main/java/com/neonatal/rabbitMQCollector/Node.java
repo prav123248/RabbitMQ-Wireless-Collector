@@ -242,24 +242,57 @@ public class Node {
             String removalMessage = "L," + name + "," + ID + "," + secretKey;
             rabbitTemplate.convertAndSend("authentication-" + controllerName, removalMessage);
             System.out.println("Leave notice sent to controller.");
-            try {
-                RabbitAdmin rabbitAdmin = new RabbitAdmin(rabbitTemplate);
-                rabbitAdmin.deleteQueue(name + "-" + ID);
-                System.out.println("Deleted the node's queues.");
-            }
-            catch(Exception e) {
-                System.out.println("There was an issue deleting the node's queue. Please use the management interface on the server to delete it." + e.getMessage());
-            }
+            authenticated = false;
+            sentAuthentication = false;
         }
         else {
             System.out.println("Node is not connected to a controller already.");
         }
-        System.exit(0);
+    }
+
+    public void connectedController() {
+        if (authenticated) {
+            System.out.println("Connected to " + controllerName);
+        }
+        else {
+            System.out.println("Node is not connected to any controller");
+        }
+    }
+
+    public void connect(String controller) {
+        if (authenticated) {
+            System.out.println("Node is already connected. Please disconnect first.");
+        }
+        else if (sentAuthentication) {
+            System.out.println("Node has already sent authentication, wait for response first.");
+        }
+        else {
+            controllerName = controller;
+            System.out.println("Sent authentication request to " + controllerName);
+            authenticationRequest("A," + name + "," + ID);
+        }
+    }
+
+    public void pauseControl(boolean pause) {
+        if (collector.getPause() == pause) {
+            System.out.println("The Capture is already set to " + pause);
+            return;
+        }
+        System.out.println("Capture pause set to " + pause);
+        collector.setPause(pause);
     }
 
     public void shutdown() {
         collector.shutdown();
         disconnect();
+        try {
+            RabbitAdmin rabbitAdmin = new RabbitAdmin(rabbitTemplate);
+            rabbitAdmin.deleteQueue(name + "-" + ID);
+            System.out.println("Deleted the node's queues.");
+        }
+        catch(Exception e) {
+            System.out.println("There was an issue deleting the node's queue. Please use the management interface on the server to delete it." + e.getMessage());
+        }
         System.out.println("Successfully shutdown");
     }
 }
