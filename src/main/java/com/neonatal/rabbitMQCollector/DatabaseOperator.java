@@ -22,11 +22,13 @@ public class DatabaseOperator {
 
     private String tableName = "myTable";
     private String headers;
+    private String headerAsLine = "";
     private boolean tableCreated = false;
 
     public DatabaseOperator() {}
 
     public void createTable(String line) {
+        headerAsLine = line;
         String[] columnNames = line.split(",");
         columnNames[0] = "PatientCode";
         StringBuilder command = new StringBuilder();
@@ -57,6 +59,12 @@ public class DatabaseOperator {
             tableCreated=true;
             return 1;
         }
+
+        //Ensures headers are not rewritten into table
+        if (line.equals(headerAsLine)) {
+            return 0;
+        }
+
         String[] columnNames = line.split(",");
         StringBuilder command = new StringBuilder();
         command.append("INSERT INTO ").append(tableName).append(headers).append("VALUES (");
