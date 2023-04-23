@@ -76,6 +76,7 @@ public class scheduleManager {
         return true;
     }
 
+    //Used to remove an existing job that was found - no prints
     private void cancelJob(String identifier, boolean periodic) {
         if (periodic) {
             periodicSchedule.remove(identifier).cancel();
@@ -85,6 +86,7 @@ public class scheduleManager {
         }
     }
 
+    //Used as a public way to remove a schedule. Catches possibility of a job not existing.
     public boolean cancelSchedule(String IP, String name, boolean periodic) {
         String identifier = name + "-" + IP;
         TimerTask pullJob;
@@ -105,10 +107,5 @@ public class scheduleManager {
             return false;
         }
     }
-
-
-
-
-
 
 }
