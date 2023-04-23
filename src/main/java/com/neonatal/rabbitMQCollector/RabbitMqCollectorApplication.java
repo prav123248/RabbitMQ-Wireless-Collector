@@ -17,7 +17,11 @@ import java.util.TimerTask;
 public class RabbitMqCollectorApplication {
 
 	public static void main(String[] args) {
-		ApplicationContext context = SpringApplication.run(RabbitMqCollectorApplication.class, args);
+
+        ControllerInterface.launch(ControllerInterface.class);
+
+        /**
+        ApplicationContext context = SpringApplication.run(RabbitMqCollectorApplication.class, args);
         Scanner scanner = new Scanner(System.in);
 		String profile = System.getProperty("spring.profiles.active");
 		System.out.println(profile);
@@ -76,6 +80,7 @@ public class RabbitMqCollectorApplication {
                 }
             }
         }
+         **/
 	}
 
     public static void pullSpecificNode(Controller consumer) {
