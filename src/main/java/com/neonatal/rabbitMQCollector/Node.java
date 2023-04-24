@@ -184,7 +184,8 @@ public class Node {
                     controllerDialog.showAndWait();
 
                     String newController = controllerDialog.getResult();
-                    if (newController != null){
+
+                    if (newController != ""){
                         controllerName = newController;
                     }
                     else {
@@ -192,7 +193,7 @@ public class Node {
                         return;
                     }
                 });
-
+                return;
             }
             else {
                 Scanner scanner = new Scanner(System.in);

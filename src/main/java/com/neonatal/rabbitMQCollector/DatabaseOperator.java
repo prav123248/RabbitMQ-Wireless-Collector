@@ -12,6 +12,8 @@ import org.springframework.stereotype.Component;
 import javax.sql.DataSource;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
+import java.sql.SQLSyntaxErrorException;
+import java.util.List;
 
 @Component
 @Profile("Controller")
@@ -76,20 +78,40 @@ public class DatabaseOperator {
 
         String[] columnNames = line.split(",");
         StringBuilder command = new StringBuilder();
-        command.append("INSERT INTO ").append(tableName).append(headers).append("VALUES (");
+        command.append("INSERT INTO ").append(tableName).append(" VALUES (");
         for (String columnName : columnNames) {
             command.append("'").append(columnName).append("'").append(", ");
         }
         command.setLength(command.length()-2);
         command.append(")");
         String createSql = command.toString();
-        return jdbcTemp.update(createSql);
+        try {
+            return jdbcTemp.update(createSql);
+        }
+        catch(BadSqlGrammarException e) {
+            System.out.println("Error inserting data into the database. Verify that the schema defined in the database is correct. An error may have occurred during table creation." + e.getMessage());
+            return 0;
+        }
     }
 
     private boolean tableExists() {;
-        String tableExistSQL = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '" + tableName + "';";
+        String tableExistSQL = "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = ?";
         Integer freq = jdbcTemp.queryForObject(tableExistSQL, Integer.class, tableName);
-        tablesCreated = freq != null || freq > 0;
+        tablesCreated = freq > 0;
+
+        //Storing headers of the table to ensure when future nodes connect, the headers are not rewritten to the database.
+        if (tablesCreated && (headerAsLine==null || headerAsLine=="")) {
+            String columnsSQL = "SELECT column_name FROM information_schema.columns WHERE table_name = ?";
+            List<String> columnNames = jdbcTemp.queryForList(columnsSQL, String.class, tableName);
+            StringBuilder headerCommand = new StringBuilder();
+            headerCommand.append(" (");
+            for (String column : columnNames) {
+                headerCommand.append(column).append(", ");
+            }
+            headerCommand.setLength(headerCommand.length() - 2);
+            headerCommand.append(") ");
+            headerAsLine = headerCommand.toString();
+        }
         return tablesCreated;
     }
 }
