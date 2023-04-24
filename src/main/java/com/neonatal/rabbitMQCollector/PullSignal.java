@@ -38,7 +38,7 @@ public class PullSignal {
         incrementPullCount();
 
         //Change current path to new file
-        currentExportPath = rawOutputPath + (pullCount) + ".csv";
+        currentExportPath = rawOutputPath + "/filteredExport" + (pullCount) + ".csv";
         return currentExportPath;
 
     }

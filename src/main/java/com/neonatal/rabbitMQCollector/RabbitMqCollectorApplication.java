@@ -2,6 +2,7 @@ package com.neonatal.rabbitMQCollector;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.ComponentScan;
 
@@ -13,7 +14,7 @@ import java.util.Scanner;
 import java.util.Timer;
 import java.util.TimerTask;
 
-@SpringBootApplication
+@SpringBootApplication(exclude = { DataSourceAutoConfiguration.class })
 public class RabbitMqCollectorApplication {
 
 	public static void main(String[] args) {
@@ -24,7 +25,7 @@ public class RabbitMqCollectorApplication {
                 ControllerInterface.launch(ControllerInterface.class);
             }
             else {
-                ControllerInterface.launch(ControllerInterface.class);
+                NodeInterface.launch(NodeInterface.class);
             }
         }
         else {

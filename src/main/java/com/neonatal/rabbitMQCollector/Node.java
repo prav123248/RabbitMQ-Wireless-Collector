@@ -1,6 +1,8 @@
 package com.neonatal.rabbitMQCollector;
 import com.rabbitmq.client.Channel;
 import jakarta.annotation.PostConstruct;
+import javafx.application.Platform;
+import javafx.scene.control.TextInputDialog;
 import org.springframework.amqp.core.AmqpMessageReturnedException;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessagePostProcessor;
@@ -20,10 +22,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.*;
 import java.nio.file.InvalidPathException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Scanner;
+import java.util.*;
 import java.util.function.Consumer;
 
 
@@ -45,6 +44,18 @@ public class Node {
 
     @Value("${rabbitmq.controllerName}")
     private String controllerName;
+
+    @Value("${rabbitmq.captureParameters}")
+    private String captureParameters;
+
+    @Value("${rabbitmq.exportPath}")
+    private String VSCaptureCsvPath;
+
+    @Value("${rabbitmq.filterPath}")
+    private String filterPath;
+
+    @Value("${rabbitmq.guiMode}")
+    private String guiMode;
 
     private boolean sentAuthentication = false;
     private boolean authenticated = false;
@@ -106,8 +117,22 @@ public class Node {
                 System.out.println("Data queue name is : " + dataQueueName);
 
                 if (initialConnection) {
-                    pullController = new PullSignal("src\\main\\java\\com\\neonatal\\rabbitMQCollector\\filteredExport");
-                    collector = new CaptureCSV("src\\main\\java\\com\\neonatal\\rabbitMQCollector\\S5DataExport.csv", Arrays.asList(0, 1, 6), pullController);
+                    //"src\\main\\java\\com\\neonatal\\rabbitMQCollector\\filteredExport"
+                    pullController = new PullSignal(filterPath);
+                    String[] separateParams = captureParameters.split(",");
+                    Integer[] parameters = new Integer[separateParams.length];
+                    for (int i=0; i<parameters.length; i++) {
+                        try {
+                            parameters[i] = Integer.parseInt(separateParams[i].trim());
+
+                        }
+                        catch(NumberFormatException e) {
+                            System.out.println("Invalid capture parameter detected, skipping : " + separateParams[i]);
+                        }
+
+                    }
+                    //"src\\main\\java\\com\\neonatal\\rabbitMQCollector\\S5DataExport.csv"
+                    collector = new CaptureCSV(VSCaptureCsvPath, Arrays.asList(parameters), pullController);
                     Thread filterer = new Thread(collector);
                     filterer.start();
                     initialConnection = false;
@@ -151,9 +176,29 @@ public class Node {
             System.out.println("Received request to transfer by controller");
             sentAuthentication = false;
             authenticated = false;
-            Scanner scanner = new Scanner(System.in);
-            System.out.println("Enter the controller to transfer to - ");
-            controllerName = scanner.nextLine();
+            if (guiMode.equals("true")) {
+                Platform.runLater(()-> {
+                    TextInputDialog controllerDialog = new TextInputDialog();
+                    controllerDialog.setTitle("Transfer Request");
+                    controllerDialog.setHeaderText("Enter the controller to transfer to (Empty means node will be controller-less) :");
+                    controllerDialog.showAndWait();
+
+                    String newController = controllerDialog.getResult();
+                    if (newController != null){
+                        controllerName = newController;
+                    }
+                    else {
+                        controllerName = "";
+                        return;
+                    }
+                });
+
+            }
+            else {
+                Scanner scanner = new Scanner(System.in);
+                System.out.println("Enter the controller to transfer to - ");
+                controllerName = scanner.nextLine();
+            }
             authenticationRequest("A," + name + "," + ID);
         }
         else {
@@ -294,8 +339,17 @@ public class Node {
         collector.setPause(pause);
     }
 
+    public boolean reversePause() {
+        collector.setPause(!collector.getPause());
+        System.out.println("Capture pause set to " + collector.getPause());
+        return collector.getPause();
+    }
+
     public void shutdown() {
-        collector.shutdown();
+        if (collector != null) {
+            collector.shutdown();
+        }
+
         disconnect();
         try {
             RabbitAdmin rabbitAdmin = new RabbitAdmin(rabbitTemplate);

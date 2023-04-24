@@ -36,6 +36,10 @@ public class ControllerInterface extends Application {
 
     @Override
     public void start(Stage stage) {
+        Label title = new Label("Controller");
+        title.setFont(Font.font("Arial", FontWeight.BOLD, 24));
+        title.setAlignment(Pos.CENTER);
+
         VBox layout = new VBox();
         layout.setAlignment(Pos.CENTER);
 
@@ -70,15 +74,17 @@ public class ControllerInterface extends Application {
         datasourceURL.setPromptText("Datasource/SQL Server URL");
         datasourceUsername.setPromptText("Datasource/SQL Server Username");
         datasourcePassword.setPromptText("Datasource/SQL Server Password");
-        layout.getChildren().addAll(username, password, brokerIP, brokerPort, deviceName, datasourceURL,datasourceUsername,datasourcePassword);
+        layout.getChildren().addAll(title,username, password, brokerIP, brokerPort, deviceName, datasourceURL,datasourceUsername,datasourcePassword);
 
 
         Button submit = new Button("Submit");
         submit.setOnAction(event -> {
             Properties propsSource = new Properties();
 
-            /**
             controllerName = deviceName.getText();
+            propsSource.put("rabbitmq.username",username.getText());
+            propsSource.put("rabbitmq.password",password.getText());
+            propsSource.put("rabbitmq.guiMode", "true");
             propsSource.put("rabbitmq.serverIP",brokerIP.getText());
             propsSource.put("rabbitmq.serverPort",brokerPort.getText());
             propsSource.put("rabbitmq.name",deviceName.getText());
@@ -86,15 +92,18 @@ public class ControllerInterface extends Application {
             propsSource.put("spring.datasource.username",datasourceUsername.getText());
             propsSource.put("spring.datasource.password",datasourcePassword.getText());
             propsSource.put("spring.datasource.driver-class-name", "com.mysql.cj.jdbc.Driver");
-            **/
-            controllerName = "Controller 1";
-            propsSource.put("rabbitmq.serverIP","192.168.1.240");
-            propsSource.put("rabbitmq.serverPort","5672");
-            propsSource.put("rabbitmq.name","controller1");
-            propsSource.put("spring.datasource.url","jdbc:mysql://127.0.0.1:3306/neonatal");
-            propsSource.put("spring.datasource.username","username");
-            propsSource.put("spring.datasource.password","password");
-            propsSource.put("spring.datasource.driver-class-name", "com.mysql.cj.jdbc.Driver");
+
+            for (Map.Entry<Object, Object> entry : propsSource.entrySet()) {
+                if (entry.getValue() == "" || entry.getValue() == null) {
+                    Alert alert = new Alert(Alert.AlertType.ERROR);
+                    alert.setTitle("Error");
+                    alert.setHeaderText("Input Error");
+                    alert.setContentText("Error : " + entry.getKey() + " Field is not filled.");
+                    alert.showAndWait();
+                    return;
+                }
+            }
+
             ApplicationContext context;
             try {
                 context = new SpringApplicationBuilder(RabbitMqCollectorApplication.class).properties(propsSource).run();
@@ -134,8 +143,8 @@ public class ControllerInterface extends Application {
 
         //Custom Console
         TextArea feedbackConsole = new TextArea();
-        PrintStream outputStream = new PrintStream(new consoleStream(feedbackConsole));
-        System.setOut(outputStream);
+        //PrintStream outputStream = new PrintStream(new consoleStream(feedbackConsole));
+        //System.setOut(outputStream);
         feedbackConsole.setEditable(false);
         actionsLayout.add(feedbackConsole,3,3,5,5);
 

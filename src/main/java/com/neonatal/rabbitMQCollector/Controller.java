@@ -2,6 +2,9 @@ package com.neonatal.rabbitMQCollector;
 
 import com.rabbitmq.client.Channel;
 import jakarta.annotation.PostConstruct;
+import javafx.application.Platform;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
@@ -37,6 +40,9 @@ public class Controller {
 
     @Value("${rabbitmq.name}")
     private String name;
+
+    @Value("${rabbitmq.guiMode}")
+    private String guiMode;
 
     @Autowired
     private DatabaseOperator connector;
@@ -121,10 +127,44 @@ public class Controller {
             }
 
             System.out.println("Node "  + nodeName + " with ID " + id + " is attempting to connect to controller " + this.name);
-            System.out.println("Approve this connection? Type Y for Yes");
-            Scanner scanner = new Scanner(System.in);
+            String approval;
+            if (guiMode.equals("true")) {
+                Platform.runLater(() -> {
+                    Alert approvalDialog = new Alert(Alert.AlertType.CONFIRMATION);
+                    approvalDialog.setTitle("Authentication Request");
+                    approvalDialog.setHeaderText("Node " + nodeName + " with ID" + id + " requests connection.");
+                    approvalDialog.setContentText("Click Yes to approve, No to Deny");
 
-            String approval = (scanner.nextLine()).toUpperCase();
+                    ButtonType approve = new ButtonType("Yes");
+                    ButtonType reject = new ButtonType("No");
+
+                    approvalDialog.getButtonTypes().setAll(approve, reject);
+
+                    approvalDialog.showAndWait();
+
+                    ButtonType approvalResult = approvalDialog.getResult();
+
+                    if (approvalResult == approve) {
+                        //Key is ID, Value is Name
+                        nodeIdentity.put(id, nodeName);
+                        nodeSecretKeys.put(id, String.valueOf(new Random().nextInt()));
+                        String successResponse = "A,T," + nodeSecretKeys.get(id) + ",data-" + this.name;
+                        System.out.println(nodeName + "-" + id + " has connected.");
+                        rabbitTemplate.convertAndSend(nodeName + "-" + id, successResponse);
+                    }
+                    else {
+                        String failedResponse = "A,F";
+                        System.out.println(nodeName + "-" + id + " has not been connected.");
+                        rabbitTemplate.convertAndSend(nodeName + "-" + id, failedResponse);
+                    }
+                });
+                return;
+            }
+            else {
+                System.out.println("Approve this connection? Type Y for Yes");
+                Scanner scanner = new Scanner(System.in);
+                approval = (scanner.nextLine()).toUpperCase();
+            }
             if (approval.equals("Y")) {
                 //Key is ID, Value is Name
                 nodeIdentity.put(id, nodeName);

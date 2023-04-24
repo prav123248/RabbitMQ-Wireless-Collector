@@ -17,6 +17,12 @@ import java.util.Random;
 @Configuration
 public class RabbitMqConfig {
 
+    @Value("${rabbitmq.username}")
+    private String username;
+
+    @Value("${rabbitmq.password}")
+    private String password;
+
     @Value("${rabbitmq.serverIP}")
     private String serverIP;
 
@@ -62,8 +68,8 @@ public class RabbitMqConfig {
     @Bean
     public ConnectionFactory connectionFactory() {
         CachingConnectionFactory connectionFactory = new CachingConnectionFactory(serverIP);
-        connectionFactory.setUsername("node");
-        connectionFactory.setPassword("guest");
+        connectionFactory.setUsername(username);
+        connectionFactory.setPassword(password);
         connectionFactory.setVirtualHost("/");
         connectionFactory.setPort(serverPort);
         return connectionFactory;
