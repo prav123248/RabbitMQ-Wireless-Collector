@@ -45,7 +45,7 @@ public class ControllerInterface extends Application {
 
         //Connection factory username and password
         TextField username = new TextField();
-        TextField password = new TextField();
+        PasswordField password = new PasswordField();
         username.setMaxWidth(250);
         password.setMaxWidth(250);
         username.setPromptText("RabbitMQ Username (Admin account)");
@@ -67,14 +67,20 @@ public class ControllerInterface extends Application {
         //Backend MySQL server details
         TextField datasourceURL = new TextField();
         TextField datasourceUsername = new TextField();
-        TextField datasourcePassword = new TextField();
+        PasswordField datasourcePassword = new PasswordField();
+        TextField datasourceTable = new TextField();
+        TextField datasourceDriver = new TextField();
         datasourceURL.setMaxWidth(400);
         datasourceUsername.setMaxWidth(400);
         datasourcePassword.setMaxWidth(400);
+        datasourceTable.setMaxWidth(400);
+        datasourceDriver.setMaxWidth(400);
         datasourceURL.setPromptText("Datasource/SQL Server URL");
         datasourceUsername.setPromptText("Datasource/SQL Server Username");
         datasourcePassword.setPromptText("Datasource/SQL Server Password");
-        layout.getChildren().addAll(title,username, password, brokerIP, brokerPort, deviceName, datasourceURL,datasourceUsername,datasourcePassword);
+        datasourceTable.setPromptText("Datasource/SQL Table name");
+        datasourceDriver.setPromptText("Datasource/SQL Driver");
+        layout.getChildren().addAll(title,username, password, brokerIP, brokerPort, deviceName, datasourceURL,datasourceUsername,datasourcePassword,datasourceTable, datasourceDriver);
 
 
         Button submit = new Button("Submit");
@@ -91,7 +97,8 @@ public class ControllerInterface extends Application {
             propsSource.put("spring.datasource.url",datasourceURL.getText());
             propsSource.put("spring.datasource.username",datasourceUsername.getText());
             propsSource.put("spring.datasource.password",datasourcePassword.getText());
-            propsSource.put("spring.datasource.driver-class-name", "com.mysql.cj.jdbc.Driver");
+            propsSource.put("spring.datasource.driver-class-name", datasourceDriver.getText());
+            propsSource.put("spring.datasource.tableName", datasourceTable.getText());
 
             for (Map.Entry<Object, Object> entry : propsSource.entrySet()) {
                 if (entry.getValue() == "" || entry.getValue() == null) {

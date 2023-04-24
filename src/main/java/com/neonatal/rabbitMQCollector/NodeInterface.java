@@ -57,7 +57,7 @@ public class NodeInterface extends Application {
 
         //Connection factory username and password
         TextField username = new TextField();
-        TextField password = new TextField();
+        PasswordField password = new PasswordField();
         username.setMaxWidth(250);
         password.setMaxWidth(250);
         username.setPromptText("RabbitMQ Username (Admin account)");
