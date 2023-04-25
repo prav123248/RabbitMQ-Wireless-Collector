@@ -48,8 +48,8 @@ public class NodeInterface extends Application {
 
     @Override
     public void start(Stage stage) {
-        VBox layout = new VBox();
-        layout.setAlignment(Pos.CENTER);
+        VBox vertLayout = new VBox();
+        vertLayout.setAlignment(Pos.CENTER);
 
         Label title = new Label("Node");
         title.setFont(Font.font("Arial", FontWeight.BOLD, 24));
@@ -79,7 +79,7 @@ public class NodeInterface extends Application {
         //RabbitMQ Controller Name
         TextField controllerName = new TextField();
         controllerName.setMaxWidth(400);
-        controllerName.setPromptText("Controller to connect to");
+        controllerName.setPromptText("Controller Name (Controller to connect to)");
 
         //AS3 Export Path
         Label exportPath = new Label("No path currently selected, please click 'Browse Export Path' below and select the VSCapture export file.");
@@ -114,31 +114,17 @@ public class NodeInterface extends Application {
             }
         });
 
-        layout.getChildren().addAll(title,username, password, brokerIP, brokerPort, deviceName, controllerName, exportPath, exportBrowse, parameters, filterPath, filterBrowse);
+        vertLayout.getChildren().addAll(title,username, password, brokerIP, brokerPort, deviceName, controllerName, exportPath, exportBrowse, parameters, filterPath, filterBrowse);
         Button submit = new Button("Submit");
         submit.setOnAction(event -> {
 
-            //Validation
-            if (emptyText(username, "username") || emptyText(password, "password") || emptyText(brokerIP, "brokerIP") || emptyText(brokerPort, "brokerPort") ||
-                    emptyText(deviceName, "name") || emptyText(controllerName, "Controller Name") || emptyText(parameters, "parameters")) {
-                return;
-            }
-
             if (!exportLoc || !exportPath.getText().endsWith(".csv")) {
-                Alert alert = new Alert(Alert.AlertType.ERROR);
-                alert.setTitle("Error");
-                alert.setHeaderText("Export Path Selection Error");
-                alert.setContentText("Failed to select a valid VSCapture export path. Please retry and use the Browse Export button until the text changes from red to green. Make sure to select a csv file.");
-                alert.showAndWait();
+                ControllerInterface.errorDialog("Export Input Error", "Export Path Selection Error","Failed to select a valid VSCapture export path. Please retry and use the Browse Export button until the text changes from red to green. Make sure to select a csv file.");
                 return;
             }
 
             if (!filterLoc) {
-                Alert alert = new Alert(Alert.AlertType.ERROR);
-                alert.setTitle("Error");
-                alert.setHeaderText("Filter Path Selection Error");
-                alert.setContentText("Failed to select a valid folder to store the filtered csv files. Please retry and use the Browse Filter Path button until the text changes from red to green. Make sure to select a folder with write permissions.");
-                alert.showAndWait();
+                ControllerInterface.errorDialog("Filter File Input Error", "Filter path Selection Error", "Failed to select a valid folder to store the filtered csv files. Please retry and use the Browse Filter Path button until the text changes from red to green. Make sure to select a folder with write permissions.");
                 return;
             }
 
@@ -155,8 +141,27 @@ public class NodeInterface extends Application {
             propsSource.put("rabbitmq.captureParameters",parameters.getText());
             propsSource.put("rabbitmq.exportPath",exportPath.getText());
 
+            for (Map.Entry<Object, Object> entry : propsSource.entrySet()) {
+                if (entry.getValue() == "" || entry.getValue() == null) {
+                    ControllerInterface.errorDialog("Empty field Error", "Input Error","Error : " + entry.getKey() + " Field is not filled.");
+                    return;
+                }
+            }
+
+            try {
+                Integer.parseInt(brokerPort.getText());
+            }
+            catch(NumberFormatException e) {
+                ControllerInterface.errorDialog("Type error", "Input Error", "Broker port is not an integer value.");
+                return;
+            }
+
+            if (!ControllerInterface.brokerConnectionTest(brokerIP, username, password, brokerPort)) {
+                return;
+            };
+
             ApplicationContext context;
-            //context = new SpringApplicationBuilder(RabbitMqCollectorApplication.class).properties(propsSource).run();
+
             try {
                 context = new SpringApplicationBuilder(RabbitMqCollectorApplication.class).properties(propsSource).run();
                 nodeScene(stage, context);
@@ -177,12 +182,12 @@ public class NodeInterface extends Application {
         });
 
         //Change var names to something useful
-        layout.getChildren().add(submit);
-        layout.setSpacing(10);
-        layout.setPrefSize(640,480);
-        Scene scene = new Scene(layout);
+        vertLayout.getChildren().add(submit);
+        vertLayout.setSpacing(10);
+        vertLayout.setPrefSize(640,480);
+        Scene window = new Scene(vertLayout);
 
-        stage.setScene(scene);
+        stage.setScene(window);
         stage.show();
     }
 

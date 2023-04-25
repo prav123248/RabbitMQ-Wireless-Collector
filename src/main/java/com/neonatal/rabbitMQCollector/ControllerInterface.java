@@ -1,5 +1,6 @@
 package com.neonatal.rabbitMQCollector;
 
+import com.rabbitmq.client.AuthenticationFailureException;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -10,7 +11,12 @@ import javafx.scene.layout.*;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
+import org.springframework.amqp.AmqpAuthenticationException;
 import org.springframework.amqp.AmqpIOException;
+import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
+//import org.springframework.amqp.rabbit.connection.Connection;
+import org.springframework.amqp.rabbit.connection.Connection;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.beans.BeanInstantiationException;
 import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.boot.SpringApplication;
@@ -22,7 +28,11 @@ import org.w3c.dom.Text;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.net.ConnectException;
 import java.net.SocketException;
+import java.net.UnknownHostException;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.time.DateTimeException;
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -40,8 +50,8 @@ public class ControllerInterface extends Application {
         title.setFont(Font.font("Arial", FontWeight.BOLD, 24));
         title.setAlignment(Pos.CENTER);
 
-        VBox layout = new VBox();
-        layout.setAlignment(Pos.CENTER);
+        VBox vertLayout = new VBox();
+        vertLayout.setAlignment(Pos.CENTER);
 
         //Connection factory username and password
         TextField username = new TextField();
@@ -80,7 +90,7 @@ public class ControllerInterface extends Application {
         datasourcePassword.setPromptText("Datasource/SQL Server Password");
         datasourceTable.setPromptText("Datasource/SQL Table name");
         datasourceDriver.setPromptText("Datasource/SQL Driver");
-        layout.getChildren().addAll(title,username, password, brokerIP, brokerPort, deviceName, datasourceURL,datasourceUsername,datasourcePassword,datasourceTable, datasourceDriver);
+        vertLayout.getChildren().addAll(title,username, password, brokerIP, brokerPort, deviceName, datasourceURL,datasourceUsername,datasourcePassword,datasourceTable, datasourceDriver);
 
 
         Button submit = new Button("Submit");
@@ -102,42 +112,81 @@ public class ControllerInterface extends Application {
 
             for (Map.Entry<Object, Object> entry : propsSource.entrySet()) {
                 if (entry.getValue() == "" || entry.getValue() == null) {
-                    Alert alert = new Alert(Alert.AlertType.ERROR);
-                    alert.setTitle("Error");
-                    alert.setHeaderText("Input Error");
-                    alert.setContentText("Error : " + entry.getKey() + " Field is not filled.");
-                    alert.showAndWait();
+                    errorDialog("Empty field Error", "Input Error","Error : " + entry.getKey() + " Field is not filled.");
                     return;
                 }
+            }
+
+            try {
+                Integer.parseInt(brokerPort.getText());
+            }
+            catch(NumberFormatException e) {
+                errorDialog("Type error", "Input Error", "Broker port is not an integer value.");
+                return;
+            }
+
+            if (!brokerConnectionTest(brokerIP, username, password, brokerPort)) {
+                return;
+            };
+
+            //Test for JDBC
+            try {
+                Class.forName(datasourceDriver.getText());
+
+            }
+            catch(ClassNotFoundException e) {
+                errorDialog("Database driver error", "The provided database driver is invalid", "The driver class was not found which means the driver may not be valid or it may not be installed/found.");
+                return;
+            }
+
+            try (java.sql.Connection testConnect = DriverManager.getConnection(datasourceURL.getText(), datasourceUsername.getText(), datasourcePassword.getText())){
+                System.out.println("Database connection was established.");
+            }
+            catch(SQLException e) {
+                errorDialog("Database input error", e.getMessage(), "Adjust database inputs accordingly or check the database configuration.");
+                return;
+            }
+            catch(Exception e) {
+                errorDialog("Database input error", e.getMessage(), "Adjust database inputs accordingly or check the database configuration.");
+                return;
             }
 
             ApplicationContext context;
             try {
                 context = new SpringApplicationBuilder(RabbitMqCollectorApplication.class).properties(propsSource).run();
                 controllerScene(stage, context);
+
             }
             catch(BeanCreationException e) {
-                System.out.println("Error creating beans. Ensure inputs are correct and retry." + e.getMessage());
+                errorDialog("Spring Error","Error creating beans. Ensure inputs are correct and retry",e.getMessage());
                 System.exit(0);
             }
             catch(BeanInstantiationException e) {
-                System.out.println("Error instantiation beans. Ensure inputs are correct and retry." + e.getMessage());
+                errorDialog("Spring Error","Error instantiation beans. Ensure inputs are correct and retry.",e.getMessage());
                 System.exit(0);
             }
             catch(AmqpIOException e) {
-                System.out.println("Error reaching network or timeout."  + e.getMessage());
+                errorDialog("Spring Error","Error reaching network or timeout.",e.getMessage());
                 System.exit(0);
             }
         });
 
         //Change var names to something useful
-        layout.getChildren().add(submit);
-        layout.setSpacing(10);
-        layout.setPrefSize(640,480);
-        Scene scene = new Scene(layout);
+        vertLayout.getChildren().add(submit);
+        vertLayout.setSpacing(10);
+        vertLayout.setPrefSize(640,480);
+        Scene window = new Scene(vertLayout);
 
-        stage.setScene(scene);
+        stage.setScene(window);
         stage.show();
+    }
+
+    public static void errorDialog(String title, String header, String content) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText(header);
+        alert.setContentText(content);
+        alert.showAndWait();
     }
 
     public void controllerScene(Stage window, ApplicationContext context) {
@@ -150,8 +199,8 @@ public class ControllerInterface extends Application {
 
         //Custom Console
         TextArea feedbackConsole = new TextArea();
-        //PrintStream outputStream = new PrintStream(new consoleStream(feedbackConsole));
-        //System.setOut(outputStream);
+        PrintStream outputStream = new PrintStream(new consoleStream(feedbackConsole));
+        System.setOut(outputStream);
         feedbackConsole.setEditable(false);
         actionsLayout.add(feedbackConsole,3,3,5,5);
 
@@ -356,6 +405,45 @@ public class ControllerInterface extends Application {
             System.out.println("Performing periodic run schedule");
             consumer.schedulePullInterval(IP, name, secondsTillScheduled, intervalPeriod);
         }
+    }
+
+    public static boolean brokerConnectionTest(TextField brokerIP, TextField username, TextField password, TextField brokerPort) {
+        CachingConnectionFactory connectionTester = new CachingConnectionFactory(brokerIP.getText());
+        connectionTester.setUsername(username.getText());
+        connectionTester.setPassword(password.getText());
+        connectionTester.setPort(Integer.parseInt(brokerPort.getText()));
+        connectionTester.setVirtualHost("/");
+
+        //Testing Username, Password, BrokerIP and Broker Port
+        try (Connection testConnect = connectionTester.createConnection()) {
+            System.out.println("RabbitBroker Connection was established. Provided details are valid.");
+        }
+        catch(AmqpAuthenticationException e) {
+            errorDialog("Authentication Error", "Provided Rabbit Broker username and password are invalid", e.getMessage() + " Please ensure the provided login is valid and ideally has ADMIN privileges with access to the '/' virtual host. This can be managed using the RabbitMQ Management UI found at localhost 15672. The port may differ.");
+            return false;
+        }
+        catch(AmqpIOException e) {
+            if (e.getCause() instanceof UnknownHostException) {
+                errorDialog("Input error", "Could not find host for given IP Address/Port inputs.",e.getMessage());
+                return false;
+            }
+            else if (e.getCause() instanceof IOException) {
+                errorDialog("Input error", "Provided Rabbit Broker username and password may not have the right privileges", e.getMessage() + " error occurred. This may be due to insufficient privileges. Visit the management UI (localhost usually port 15672). Ensure the account has ADMIN privileges and has access to the '/' virtual host.");
+                return false;
+            }
+
+            errorDialog("Input error", "Error connecting to RabbitMQ Broker",e.getMessage());
+            return false;
+        }
+        catch(Exception e) {
+            if (e.getCause() instanceof ConnectException) {
+                errorDialog("Connection error", "Could not connect to RabbitMQ Broker", e.getMessage() + " Please check the port is correct. It is usually 5672");
+                return false;
+            }
+            errorDialog("Connection error", "Could not connect to RabbitMQ Broker.", e.getMessage());
+            return false;
+        }
+        return true;
     }
 
 }
