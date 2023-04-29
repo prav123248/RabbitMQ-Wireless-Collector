@@ -25,7 +25,7 @@ public class DatabaseConfig {
     @Value("${spring.datasource.driver-class-name}")
     private String driverName;
 
-    @Profile("Controller")
+
     @Bean(name="dataSource")
     public DataSource dataSource() {
         DriverManagerDataSource dataSource = new DriverManagerDataSource();
@@ -36,9 +36,11 @@ public class DatabaseConfig {
         return dataSource;
     }
 
-    @Profile("Controller")
+
     @Bean("jdbcTemplate")
     public JdbcTemplate jdbcTemplate(DataSource ds) {
         return new JdbcTemplate(ds);
     }
 }
+
+

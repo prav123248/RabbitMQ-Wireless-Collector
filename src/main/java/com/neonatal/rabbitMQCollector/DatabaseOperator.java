@@ -84,9 +84,9 @@ public class DatabaseOperator {
         }
         command.setLength(command.length()-2);
         command.append(")");
-        String createSql = command.toString();
+        String insertData = command.toString();
         try {
-            return jdbcTemp.update(createSql);
+            return jdbcTemp.update(insertData);
         }
         catch(BadSqlGrammarException e) {
             System.out.println("Error inserting data into the database. Verify that the schema defined in the database is correct. An error may have occurred during table creation." + e.getMessage());

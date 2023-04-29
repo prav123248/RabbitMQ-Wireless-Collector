@@ -377,25 +377,31 @@ public class ControllerInterface extends Application {
                     .withSecond(0);
         }
         catch(NumberFormatException e) {
-            System.out.println("Please enter the start time (HH:MM) in the correct format. There should be two digits, a colon, and two digits." + e.getMessage());
+            errorDialog("Input error","Please enter the start time (HH:MM) in the correct format. There should be two digits, a colon, and two digits.", e.getMessage());
             return;
         }
         catch(DateTimeException e) {
-            System.out.println("The given time is not valid. Please check and ensure it is provided in the right format " + e.getMessage());
+            errorDialog("Input error","The given time is not valid. Please check and ensure it is provided in the right format.", e.getMessage());
             return;
         }
-
-        LocalDateTime now = LocalDateTime.now();
-        long secondsTillScheduled = now.until(scheduledTime, java.time.temporal.ChronoUnit.MILLIS);
-        System.out.println("Sending pull request in " + secondsTillScheduled/1000 + " seconds");
 
         long intervalPeriod = 0;
         try {
             intervalPeriod = Long.parseLong(interval);
         }
         catch(NumberFormatException e) {
-            System.out.println("Interval value is invalid, not proceeding with the schedule. Please make sure it is numeric.");
+            errorDialog("Input error", "Schedule interval issue", "Interval value is invalid, not proceeding with the schedule. Please make sure it is numeric.");
+            return;
         }
+
+        if (intervalPeriod < 0) {
+            errorDialog("Input error", "Schedule interval issue", "Enter a positive interval, the minimum value is 0");
+            return;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        long secondsTillScheduled = now.until(scheduledTime, java.time.temporal.ChronoUnit.MILLIS);
+        System.out.println("Sending pull request in " + secondsTillScheduled/1000 + " seconds");
 
         if (interval.equals("0")) {
             System.out.println("Performing single run schedule");

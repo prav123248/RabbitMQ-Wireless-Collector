@@ -128,6 +128,19 @@ public class NodeInterface extends Application {
                 return;
             }
 
+            String[] paramTest = parameters.getText().split(",");
+
+            for (String item : paramTest) {
+                try {
+                    Integer.parseInt(item);
+                }
+                catch(NumberFormatException e) {
+                    ControllerInterface.errorDialog("Input error", "Parameter includes non-numeric characters", "Make sure each comma separated value represents an index of the desired parameter starting from 0. An example of valid input is 1,2,6.");
+                    return;
+                }
+            }
+
+
 
             Properties propsSource = new Properties();
             propsSource.put("rabbitmq.username", username.getText());

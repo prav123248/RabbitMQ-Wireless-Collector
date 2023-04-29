@@ -144,6 +144,8 @@ public class Node {
 
             }
             else {
+                sentAuthentication = false;
+                authenticated = false;
                 System.out.println("Connection refused by controller.");
 
             }
@@ -161,13 +163,13 @@ public class Node {
                 }
                 //Fourth index has time
                 else if (messageArray[2].equals("S") && messageArray.length == 4) {
-                    //Schedule
+                    //Schedule - old design
                     System.out.println("Pull request scheduled - " + messageArray[3]);
                 }
             }
 
             else {
-                System.out.println("Controller request not understood by node");
+                System.out.println("Secret key does not match. Controller pull request is ignored.");
             }
 
         }
