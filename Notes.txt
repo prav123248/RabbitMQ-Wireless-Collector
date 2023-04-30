@@ -4,15 +4,15 @@ Setup Process
 3. Download RabbitMQ server from the website.
 
 Profiles : 
--Dspring.profiles.active=Receiver
--Dspring.profiles.active=Sender
+-Dspring.profiles.active=Controlleriver
+-Dspring.profiles.active=Node
 
-Adjust between the Sender and Receiver profiles depending on which aspect of the system you need.
-Raspberry PI nodes should use Sender. Central point like a laptop should use Receiver.
+Adjust between the Controller and Node profiles depending on which aspect of the system you need.
+Raspberry PI nodes should use Node. Central point like a laptop should use Controller.
 
 In Intellij, edit configurations, add VM options and paste the -D text listed above.
 
-Useful commands
+Useful commands (In an ADMIN CMD)
 4. cd "C:\Program Files\RabbitMQ Server\rabbitmq_server-3.11.7\sbin"
 5. rabbitmq-service start/stop
 6. rabbitmq-plugins enable rabbitmq_management  (Use http://localhost:15672/ to access management UI)

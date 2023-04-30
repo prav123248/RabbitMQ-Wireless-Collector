@@ -55,7 +55,7 @@ public class Node {
     private String filterPath;
 
     @Value("${rabbitmq.guiMode}")
-    private String guiMode;
+    private boolean guiMode;
 
     private boolean sentAuthentication = false;
     private boolean authenticated = false;
@@ -178,7 +178,7 @@ public class Node {
             System.out.println("Received request to transfer by controller");
             sentAuthentication = false;
             authenticated = false;
-            if (guiMode.equals("true")) {
+            if (guiMode == true) {
                 Platform.runLater(()-> {
                     TextInputDialog controllerDialog = new TextInputDialog();
                     controllerDialog.setTitle("Transfer Request");

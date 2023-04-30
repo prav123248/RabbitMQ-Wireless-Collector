@@ -42,7 +42,7 @@ public class Controller {
     private String name;
 
     @Value("${rabbitmq.guiMode}")
-    private String guiMode;
+    private boolean guiMode;
 
     @Autowired
     private DatabaseOperator connector;
@@ -128,7 +128,7 @@ public class Controller {
 
             System.out.println("Node "  + nodeName + " with ID " + id + " is attempting to connect to controller " + this.name);
             String approval;
-            if (guiMode.equals("true")) {
+            if (guiMode == true) {
                 Platform.runLater(() -> {
                     Alert approvalDialog = new Alert(Alert.AlertType.CONFIRMATION);
                     approvalDialog.setTitle("Authentication Request");

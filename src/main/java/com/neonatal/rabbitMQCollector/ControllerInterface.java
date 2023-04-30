@@ -100,7 +100,7 @@ public class ControllerInterface extends Application {
             controllerName = deviceName.getText();
             propsSource.put("rabbitmq.username",username.getText());
             propsSource.put("rabbitmq.password",password.getText());
-            propsSource.put("rabbitmq.guiMode", "true");
+            propsSource.put("rabbitmq.guiMode", true);
             propsSource.put("rabbitmq.serverIP",brokerIP.getText());
             propsSource.put("rabbitmq.serverPort",brokerPort.getText());
             propsSource.put("rabbitmq.name",deviceName.getText());

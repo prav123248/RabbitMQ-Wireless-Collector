@@ -1,5 +1,10 @@
 package com.neonatal.rabbitMQCollector;
 
+import javafx.application.Platform;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
+import org.springframework.beans.factory.annotation.Value;
+
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
@@ -20,6 +25,10 @@ public class CaptureCSV implements Runnable{
     private List<Integer> params;
     private BufferedWriter writer;
     private PullSignal pullController;
+
+    @Value("${rabbitmq.guiMode}")
+    private boolean guiMode;
+
 
     public CaptureCSV(String csv, List<Integer> selectedParams, PullSignal puller) {
         captureFileName = csv;
@@ -48,11 +57,27 @@ public class CaptureCSV implements Runnable{
                 readOnlyFile = new RandomAccessFile(file, "r");
                 break;
             } catch (FileNotFoundException e) {
-                System.out.println(e.getMessage());
-                System.out.println("File not found, exiting, try again");
-                Scanner scan = new Scanner(System.in);
-                System.out.println("Enter any key when capture has started.");
-                scan.nextLine();
+                if (guiMode == true) {
+                    Platform.runLater(() -> {
+                        Alert approvalDialog = new Alert(Alert.AlertType.CONFIRMATION);
+                        approvalDialog.setTitle("File not found");
+                        approvalDialog.setHeaderText("Cannot find export file. Make sure VSCapture export file is at the specified path.");
+                        approvalDialog.setContentText("Press ok when VSCapture file is in the correct location");
+
+                        ButtonType ready = new ButtonType("Ready");
+                        approvalDialog.getButtonTypes().setAll(ready);
+                        approvalDialog.showAndWait();
+
+                    });
+
+                }
+                else {
+                    System.out.println(e.getMessage());
+                    System.out.println("File not found, exiting, try again");
+                    Scanner scan = new Scanner(System.in);
+                    System.out.println("Enter any key when capture has started.");
+                    scan.nextLine();
+                }
             }
         }
 
@@ -138,14 +163,16 @@ public class CaptureCSV implements Runnable{
 
         String[] lineArray = line.split(",");
 
-        if (!(params.get(params.size()-1) < lineArray.length)) {
+
+
+        if ((Collections.max(params) >= lineArray.length)) {
             System.out.println("Specified Parameters exceed raw captured parameter count.");
             System.out.println("Failed to process file - reconfigure parameters within limit.");
             System.exit(0);
         }
 
         for (int i=0; i<params.size()-1; i++) {
-            filteredLine += lineArray[i] + ",";
+            filteredLine += lineArray[params.get(i)] + ",";
         }
 
         filteredLine += lineArray[params.get(params.size()-1)];
@@ -167,12 +194,26 @@ public class CaptureCSV implements Runnable{
                 writer = new BufferedWriter(new FileWriter(newOutput, true));
                 break;
             } catch (IOException e) {
-                System.out.println(e.getMessage());
-                System.out.println("Error opening FileWriter for new filtered export file");
-                System.out.println("Directory does not exist or insufficient space or IO Error when creating/accessing file");
-                Scanner scan = new Scanner(System.in);
-                System.out.println("Enter a key to retry - if file is already open this will increment to another file");
-                scan.nextLine();
+
+                if (guiMode == true) {
+                    Alert approvalDialog = new Alert(Alert.AlertType.CONFIRMATION);
+                    approvalDialog.setTitle("Error opening FileWriter for new filtered export file");
+                    approvalDialog.setHeaderText("Directory does not exist or insufficient space or IO Error when creating/accessing file.");
+                    approvalDialog.setContentText("The system will pause capture. Please pull any data and clear the system.");
+                    ButtonType ready = new ButtonType("Ok");
+                    approvalDialog.getButtonTypes().setAll(ready);
+                    approvalDialog.showAndWait();
+                    pause=true;
+
+                }
+                else {
+                    System.out.println(e.getMessage());
+                    System.out.println("Error opening FileWriter for new filtered export file");
+                    System.out.println("Directory does not exist or insufficient space or IO Error when creating/accessing file");
+                    Scanner scan = new Scanner(System.in);
+                    System.out.println("Enter a key to retry - if file is already open this will increment to another file");
+                    scan.nextLine();
+                }
             }
         }
     }
