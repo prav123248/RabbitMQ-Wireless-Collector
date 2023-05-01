@@ -35,7 +35,7 @@ Notes for testing both Node/Controller locally :
 Use this in the JVM arguments to change the port from 8080 to run nodes and controllers on the same machine separately. One of the instances can use default 8080.
 
 
-Raspberry PI setup process :
+Raspberry PI setup process (Old) :
 1. Download github repo
 2. Install maven with "sudo apt-get install maven"
 3. Download openjdk-17 using "sudo apt install openjdk-17-jdk"
@@ -144,6 +144,18 @@ Running CONSOLE mode without GUI on Raspberry PI :
 4. If an argument is passed, the console version is used instead.
 5. Inputs are a bit weird since it uses a Java Scanner. You might have to enter responses a few times even if it says it is invalid input. For example, when accepting an authentication request - you may have to type "Y" + enter a couple times until it registers on the node.
 6. Haven't tested the console version since adding the GUI so not sure how functional it is. Should be fine for most functions.
+
+
+Raspberry PI Login Information :
+
+Model A with Screen : 
+username 
+
+
+
+
+
+
 
 
 
