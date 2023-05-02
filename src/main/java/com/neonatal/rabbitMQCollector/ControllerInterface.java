@@ -1,9 +1,7 @@
 package com.neonatal.rabbitMQCollector;
 
-import com.rabbitmq.client.AuthenticationFailureException;
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -14,22 +12,16 @@ import javafx.stage.Stage;
 import org.springframework.amqp.AmqpAuthenticationException;
 import org.springframework.amqp.AmqpIOException;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
-//import org.springframework.amqp.rabbit.connection.Connection;
 import org.springframework.amqp.rabbit.connection.Connection;
-import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.beans.BeanInstantiationException;
 import org.springframework.beans.factory.BeanCreationException;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ApplicationContext;
-import org.w3c.dom.Text;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.net.ConnectException;
-import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -37,7 +29,6 @@ import java.time.DateTimeException;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Scanner;
 
 
 public class ControllerInterface extends Application {
@@ -92,11 +83,12 @@ public class ControllerInterface extends Application {
         datasourceDriver.setPromptText("Datasource/SQL Driver");
         vertLayout.getChildren().addAll(title,username, password, brokerIP, brokerPort, deviceName, datasourceURL,datasourceUsername,datasourcePassword,datasourceTable, datasourceDriver);
 
-
+        //Submit button for first page
         Button submit = new Button("Submit");
         submit.setOnAction(event -> {
             Properties propsSource = new Properties();
 
+            ///Assign properties
             controllerName = deviceName.getText();
             propsSource.put("rabbitmq.username",username.getText());
             propsSource.put("rabbitmq.password",password.getText());
@@ -110,6 +102,7 @@ public class ControllerInterface extends Application {
             propsSource.put("spring.datasource.driver-class-name", datasourceDriver.getText());
             propsSource.put("spring.datasource.tableName", datasourceTable.getText());
 
+            //Validation checks - Empty fields
             for (Map.Entry<Object, Object> entry : propsSource.entrySet()) {
                 if (entry.getValue() == "" || entry.getValue() == null) {
                     errorDialog("Empty field Error", "Input Error","Error : " + entry.getKey() + " Field is not filled.");
@@ -117,6 +110,7 @@ public class ControllerInterface extends Application {
                 }
             }
 
+            //Broker must be numeric
             try {
                 Integer.parseInt(brokerPort.getText());
             }
@@ -125,11 +119,12 @@ public class ControllerInterface extends Application {
                 return;
             }
 
+            //Test connection to see if details are valid
             if (!brokerConnectionTest(brokerIP, username, password, brokerPort)) {
                 return;
             };
 
-            //Test for JDBC
+            //Test for JDBC connection to DB
             try {
                 Class.forName(datasourceDriver.getText());
 
@@ -171,7 +166,7 @@ public class ControllerInterface extends Application {
             }
         });
 
-        //Change var names to something useful
+
         vertLayout.getChildren().add(submit);
         vertLayout.setSpacing(10);
         vertLayout.setPrefSize(640,480);
@@ -181,6 +176,7 @@ public class ControllerInterface extends Application {
         stage.show();
     }
 
+    //Dialog menu for error messages
     public static void errorDialog(String title, String header, String content) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle(title);
@@ -338,14 +334,17 @@ public class ControllerInterface extends Application {
 
     }
 
+    //Class to use TextArea as a console
     private class consoleStream extends OutputStream {
 
         TextArea newConsole;
 
+        //Stream wraps TextArea
         public consoleStream(TextArea txt) {
             newConsole = txt;
         }
 
+        //GUI thread will add the character to the text area
         @Override
         public void write(int b) throws IOException {
             Platform.runLater(() -> newConsole.appendText(String.valueOf((char)b)));

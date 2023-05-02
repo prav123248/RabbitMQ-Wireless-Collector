@@ -2,7 +2,6 @@ package com.neonatal.rabbitMQCollector;
 
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.paint.Color;
@@ -20,28 +19,23 @@ import javafx.stage.Stage;
 import org.springframework.amqp.AmqpIOException;
 import org.springframework.beans.BeanInstantiationException;
 import org.springframework.beans.factory.BeanCreationException;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ApplicationContext;
-import org.w3c.dom.Text;
 
-import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.net.SocketException;
-import java.time.DateTimeException;
-import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Scanner;
+
 
 
 public class NodeInterface extends Application {
 
     private String nodeName = "";
+
+    //Used to track if file paths have been inputted
     private boolean exportLoc = false;
     private boolean filterLoc = false;
 
@@ -117,7 +111,7 @@ public class NodeInterface extends Application {
         vertLayout.getChildren().addAll(title,username, password, brokerIP, brokerPort, deviceName, controllerName, exportPath, exportBrowse, parameters, filterPath, filterBrowse);
         Button submit = new Button("Submit");
         submit.setOnAction(event -> {
-
+            //Makes sure CSV file is chosen for export
             if (!exportLoc || !exportPath.getText().endsWith(".csv")) {
                 ControllerInterface.errorDialog("Export Input Error", "Export Path Selection Error","Failed to select a valid VSCapture export path. Please retry and use the Browse Export button until the text changes from red to green. Make sure to select a csv file.");
                 return;
@@ -128,6 +122,7 @@ public class NodeInterface extends Application {
                 return;
             }
 
+            //Checks if parameters are integers
             String[] paramTest = parameters.getText().split(",");
 
             for (String item : paramTest) {
@@ -140,7 +135,7 @@ public class NodeInterface extends Application {
                 }
             }
 
-
+            //Sets properties
             Properties propsSource = new Properties();
             propsSource.put("rabbitmq.username", username.getText());
             propsSource.put("rabbitmq.password", password.getText());
@@ -153,6 +148,7 @@ public class NodeInterface extends Application {
             propsSource.put("rabbitmq.captureParameters",parameters.getText());
             propsSource.put("rabbitmq.exportPath",exportPath.getText());
 
+            //Checks for empty properties
             for (Map.Entry<Object, Object> entry : propsSource.entrySet()) {
                 if (entry.getValue() == "" || entry.getValue() == null) {
                     ControllerInterface.errorDialog("Empty field Error", "Input Error","Error : " + entry.getKey() + " Field is not filled.");
@@ -160,6 +156,7 @@ public class NodeInterface extends Application {
                 }
             }
 
+            //Tests broker
             try {
                 Integer.parseInt(brokerPort.getText());
             }
@@ -168,10 +165,13 @@ public class NodeInterface extends Application {
                 return;
             }
 
+            //Reuses Controller function to test broker
             if (!ControllerInterface.brokerConnectionTest(brokerIP, username, password, brokerPort)) {
                 return;
             };
 
+
+            //Passed validation, pass properties to Spring
             ApplicationContext context;
 
             try {
@@ -193,7 +193,6 @@ public class NodeInterface extends Application {
 
         });
 
-        //Change var names to something useful
         vertLayout.getChildren().add(submit);
         vertLayout.setSpacing(10);
         vertLayout.setPrefSize(640,480);
@@ -294,6 +293,7 @@ public class NodeInterface extends Application {
 
     }
 
+    //Custom output stream to replace console and add messages to TextArea
     private class consoleStream extends OutputStream {
 
         TextArea newConsole;
@@ -308,6 +308,7 @@ public class NodeInterface extends Application {
         }
     }
 
+    //Checks if field is empty and outputs error dialog
     public static boolean emptyText(TextField text, String name) {
         String result = text.getText();
         if (result == null || result.trim().isEmpty()) {

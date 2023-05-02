@@ -7,15 +7,12 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
 import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.Message;
-import org.springframework.amqp.core.MessageProperties;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.ChannelCallback;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter;
 import org.springframework.amqp.support.converter.SimpleMessageConverter;
-import org.springframework.amqp.utils.SerializationUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.DependsOn;
@@ -73,9 +70,11 @@ public class Controller {
             }
         };
 
+        //Broker creates a queue
         rabbitTemplate.execute(queueDeclare);
     }
 
+    //Creates a listener container for a queue
     private void createQueueListener(String queueName, String methodListener) {
         SimpleMessageListenerContainer controllerListener = new SimpleMessageListenerContainer();
         controllerListener.setConnectionFactory(rabbitTemplate.getConnectionFactory());
@@ -94,6 +93,7 @@ public class Controller {
         controllerListener.start();
     }
 
+    //Handles authentication-queue messages
     public void authenticationHandler(String message) {
         String[] messageArray = message.split(",");
         String requestType = messageArray[0];
@@ -129,6 +129,7 @@ public class Controller {
             System.out.println("Node "  + nodeName + " with ID " + id + " is attempting to connect to controller " + this.name);
             String approval;
             if (guiMode == true) {
+                //Following code will be run by GUI thread
                 Platform.runLater(() -> {
                     Alert approvalDialog = new Alert(Alert.AlertType.CONFIRMATION);
                     approvalDialog.setTitle("Authentication Request");
@@ -165,6 +166,7 @@ public class Controller {
                 Scanner scanner = new Scanner(System.in);
                 approval = (scanner.nextLine()).toUpperCase();
             }
+            //Authentication approved
             if (approval.equals("Y")) {
                 //Key is ID, Value is Name
                 nodeIdentity.put(id, nodeName);
@@ -182,8 +184,8 @@ public class Controller {
         }
     }
 
+    //Handles messages from the data-queue
     public void dataHandler(Message message) {
-
         Map<String, Object> headers = message.getMessageProperties().getHeaders();
         String nodeName = (String)headers.get("nodeName");
         String nodeID = (String)headers.get("nodeID");
@@ -196,23 +198,28 @@ public class Controller {
 
     }
 
-    //DB Export
+    //DB Export - Saves to DB
     private int saveToDB(byte[] data, String exportNumber, String nodeID) {
         BufferedReader byteReader = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(data)));
         String line;
         String idCheck;
         Integer count = 0;
 
+        //Creates empty entry if patient ID is not specified
         if (!currentPatientID.containsKey(nodeID)) {
             currentPatientID.put(nodeID, "");
         }
 
+        //Parses bytes into lines
         try {
             while ((line = byteReader.readLine()) != null) {
                 idCheck = line.split(",")[0];
+
+                //Saves new patient ID if it is not empty
                 if (!idCheck.equals("")) {
                     currentPatientID.put(nodeID, idCheck);
                 }
+                //Inserts into DB
                 count += connector.insert(currentPatientID.get(nodeID) + "," + line.substring(line.indexOf(",")+1));
             }
         }
@@ -232,7 +239,7 @@ public class Controller {
         }
     }
 
-
+    //Sends a pull request to node queue if it is one of the authenticated
     public boolean sendPullRequest(String ipAddress, String name) {
         if (nodeIdentity.containsKey(ipAddress) && nodeIdentity.get(ipAddress).equals(name)) {
             rabbitTemplate.convertAndSend(name + "-" + ipAddress, "P," + nodeSecretKeys.get(ipAddress) + ",N");

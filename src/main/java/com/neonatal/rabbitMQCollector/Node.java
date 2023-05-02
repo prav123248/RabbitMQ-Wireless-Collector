@@ -5,9 +5,7 @@ import javafx.application.Platform;
 import javafx.scene.control.TextInputDialog;
 import org.springframework.amqp.core.AmqpMessageReturnedException;
 import org.springframework.amqp.core.Message;
-import org.springframework.amqp.core.MessagePostProcessor;
 import org.springframework.amqp.core.MessageProperties;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.ChannelCallback;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -15,7 +13,6 @@ import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
@@ -23,7 +20,6 @@ import org.springframework.stereotype.Service;
 import java.io.*;
 import java.nio.file.InvalidPathException;
 import java.util.*;
-import java.util.function.Consumer;
 
 
 //Node class responsible for sending data according to the communication schedule
@@ -117,7 +113,7 @@ public class Node {
                 System.out.println("Data queue name is : " + dataQueueName);
 
                 if (initialConnection) {
-                    //"src\\main\\java\\com\\neonatal\\rabbitMQCollector\\filteredExport"
+
                     pullController = new PullSignal(filterPath);
                     String[] separateParams = captureParameters.split(",");
                     Integer[] parameters = new Integer[separateParams.length];
@@ -131,7 +127,7 @@ public class Node {
                         }
 
                     }
-                    //"src\\main\\java\\com\\neonatal\\rabbitMQCollector\\S5DataExport.csv"
+
                     collector = new CaptureCSV(VSCaptureCsvPath, Arrays.asList(parameters), pullController);
                     Thread filterer = new Thread(collector);
                     filterer.start();
@@ -209,9 +205,11 @@ public class Node {
         }
     }
 
+    //Send authentication request to controller authentication queue
     public void authenticationRequest(String nodeIdentity) {
         try {
             rabbitTemplate.convertAndSend("authentication-" + controllerName, nodeIdentity);
+            //Prevents reauthentication without being rejected
             sentAuthentication = true;
         } catch (AmqpMessageReturnedException e) {
             System.out.println("Message returned error - controller likely doesn't exist as the routing key was invalid");
@@ -253,6 +251,7 @@ public class Node {
         System.out.println("Successfully sent data");
     }
 
+    //Takes a file and processes a stream of it in chunks
     public static byte[] toByteArray(File csvFile) throws IOException {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         try (InputStream inputStream = new FileInputStream(csvFile)) {
@@ -266,6 +265,7 @@ public class Node {
         }
     }
 
+    //Sets pull to true and waits for CaptureCSV to close current file and update the file path
     private String obtainFilename() {
         synchronized (pullController) {
             pullController.setPull(true);

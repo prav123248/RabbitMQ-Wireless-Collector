@@ -4,15 +4,13 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.ComponentScan;
 
 
 import java.time.LocalDateTime;
 
 import java.util.Map;
 import java.util.Scanner;
-import java.util.Timer;
-import java.util.TimerTask;
+
 
 @SpringBootApplication(exclude = { DataSourceAutoConfiguration.class })
 public class RabbitMqCollectorApplication {
@@ -28,6 +26,7 @@ public class RabbitMqCollectorApplication {
                 NodeInterface.launch(NodeInterface.class);
             }
         }
+        //Old console mode used before GUI was made
         else {
             ApplicationContext context = SpringApplication.run(RabbitMqCollectorApplication.class, args);
             Scanner scanner = new Scanner(System.in);

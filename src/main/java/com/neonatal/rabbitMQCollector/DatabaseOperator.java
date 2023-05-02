@@ -10,9 +10,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 import javax.sql.DataSource;
-import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
-import java.sql.SQLSyntaxErrorException;
 import java.util.List;
 
 @Component
@@ -41,6 +38,8 @@ public class DatabaseOperator {
         columnNames[0] = "PatientCode";
         StringBuilder command = new StringBuilder();
         StringBuilder headerCommand = new StringBuilder();
+
+        //Table formed by making Create SQL command string
         command.append("CREATE TABLE IF NOT EXISTS ").append(tableName).append(" (");
         headerCommand.append(" (");
         for (String name : columnNames) {
@@ -53,6 +52,8 @@ public class DatabaseOperator {
         command.append(")");
         headers = headerCommand.toString();
         String createSql = command.toString();
+
+
         try {
             jdbcTemp.execute(createSql);
         }
@@ -71,12 +72,17 @@ public class DatabaseOperator {
             return 1;
         }
 
-        //Ensures headers are not rewritten into table
-        if (line.equals(headerAsLine)) {
-            return 0;
+        String[] columnNames = line.split(",");
+        String[] headersArray = headerAsLine.split(",");
+
+        //Table with more than just patient code
+        if (headersArray.length > 1) {
+            //Check if first header matches - if line is a header
+            if (headersArray[1].equals(columnNames[1])) {
+                return 0;
+            }
         }
 
-        String[] columnNames = line.split(",");
         StringBuilder command = new StringBuilder();
         command.append("INSERT INTO ").append(tableName).append(" VALUES (");
         for (String columnName : columnNames) {

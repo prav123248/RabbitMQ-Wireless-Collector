@@ -9,6 +9,7 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 import javax.sql.DataSource;
 
+//Responsible for configuring properties needed for DatabaseOperators
 @Profile("Controller")
 @Configuration
 public class DatabaseConfig {

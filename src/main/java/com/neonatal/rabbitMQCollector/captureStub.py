@@ -9,7 +9,7 @@ def create_csv(freq):
     #Sample row of data for the CSV file
     example_data = [1,'17/03/2023 13:11', 120, '-', '-', '-', 97, '-', '-', '-', '-', 'None', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-','-']
 
-    
+    print("Speed set to ",freq,"seconds interval")
     #Open the CSV file in write mode and write the column headings and example row to it.
     #Keep file open during writes just like VSCapture does.
     with open('S5DataExport.csv', mode='w', newline='') as file:
@@ -27,5 +27,5 @@ def create_csv(freq):
             
 
 if __name__ == '__main__':
-    create_csv(2)
+    create_csv(5)
 

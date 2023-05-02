@@ -19,6 +19,8 @@ public class CaptureCSV implements Runnable{
     private int sleepInterval = 5;
     private boolean pause = false;
     private UUID patientID;
+
+    //Used to determine if patient UUID should be written in file
     private boolean patientWriteID= true;
 
     //Filtered export related (Output)
@@ -49,9 +51,12 @@ public class CaptureCSV implements Runnable{
         openNewOutput();
     }
 
+
     public void run() {
         File file = new File(captureFileName);
         RandomAccessFile readOnlyFile;
+
+        //Loop until correct input provided
         while (true) {
             try {
                 readOnlyFile = new RandomAccessFile(file, "r");
@@ -87,6 +92,7 @@ public class CaptureCSV implements Runnable{
         ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
         StringBuilder nextLine = new StringBuilder();
 
+        //Main Capture Loop
         while (true) {
             if (shutdown) {
                 closeFile(false);
@@ -102,6 +108,7 @@ public class CaptureCSV implements Runnable{
                     patientWriteID = true;
                 }
             } else {
+                //Read each line and sleep if nothing to read
                 try {
                     if (channel.read(buffer) != -1) {
                         buffer.flip();
@@ -152,6 +159,8 @@ public class CaptureCSV implements Runnable{
 
     private void processLine(String line) {
         String filteredLine;
+
+        //Write patient ID if required
         if (patientWriteID) {
             filteredLine = patientID.toString() + ",";
             patientWriteID = false;
@@ -186,6 +195,7 @@ public class CaptureCSV implements Runnable{
         }
     }
 
+    //Opens a new file for filter exports
     private void openNewOutput() {
 
         while (true) {
@@ -194,7 +204,7 @@ public class CaptureCSV implements Runnable{
                 writer = new BufferedWriter(new FileWriter(newOutput, true));
                 break;
             } catch (IOException e) {
-
+                //GUIMODE is used in case support for console returns
                 if (guiMode == true) {
                     Alert approvalDialog = new Alert(Alert.AlertType.CONFIRMATION);
                     approvalDialog.setTitle("Error opening FileWriter for new filtered export file");
@@ -218,6 +228,7 @@ public class CaptureCSV implements Runnable{
         }
     }
 
+    //Current filter export closes, create new will make a new one after closing
     private void closeFile(boolean createNew) {
         try {
             writer.close();

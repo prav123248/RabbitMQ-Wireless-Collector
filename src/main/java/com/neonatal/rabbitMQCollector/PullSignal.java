@@ -28,6 +28,7 @@ public class PullSignal {
         return pull;
     }
 
+    //Run by CaptureCSV thread when a new filter export is opened
     public synchronized String newCurrentExport() {
         if (pull) {
             //Add current path to export queue
@@ -43,6 +44,7 @@ public class PullSignal {
 
     }
 
+    //Run by node to obtain filter export path after CaptureCSV notifies
     public synchronized String nextExport() {
         if (exportQueue.size() > 0) {
             return exportQueue.pop();

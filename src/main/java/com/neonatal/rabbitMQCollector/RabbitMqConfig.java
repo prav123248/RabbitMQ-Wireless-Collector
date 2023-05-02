@@ -74,4 +74,4 @@ public class RabbitMqConfig {
         connectionFactory.setPort(serverPort);
         return connectionFactory;
     }
-}
+    }
