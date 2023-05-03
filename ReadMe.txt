@@ -2,6 +2,7 @@
 Latest version of this project can be found at my github :
 https://github.com/prav123248/RabbitMQ-Wireless-Collector
 
+The JAR Build folder contains JARs of the System.
 
 
 If you want to run this system, see Appendix A of my final report which is the same as below but properly formatted and with images.

@@ -29,20 +29,8 @@ public class RabbitMqConfig {
     @Value("${rabbitmq.serverPort}")
     private int serverPort;
 
-    @Bean(name="ID")
-    public String uniqueID() {
-        String ID;
-        //Uses IP Address or Random number to uniquely identify Node
-        try {
-            InetAddress inet = InetAddress.getLocalHost();
-            ID = inet.getHostAddress();
-        }
-        catch(UnknownHostException e) {
-            System.out.println("Could not retrieve host information");
-            ID = String.valueOf(new Random().nextInt());
-        }
-        return ID;
-    }
+    @Value("ID")
+    private String ipAddress;
 
     @Bean(name="adminInitialisation")
     public RabbitAdmin rabbitAdmin(ConnectionFactory connect, DirectExchange exchange) {

@@ -32,7 +32,7 @@ public class Node {
     @Autowired
     private RabbitTemplate rabbitTemplate;
 
-    @Autowired
+    @Value("${ID}")
     private String ID;
 
     @Value("${rabbitmq.name}")

@@ -69,6 +69,9 @@ public class NodeInterface extends Application {
         TextField deviceName = new TextField();
         deviceName.setMaxWidth(350);
         deviceName.setPromptText("Node Name");
+        TextField ipAddress = new TextField();
+        ipAddress.setMaxWidth(350);
+        ipAddress.setPromptText("Node IP Address");
 
         //RabbitMQ Controller Name
         TextField controllerName = new TextField();
@@ -108,7 +111,7 @@ public class NodeInterface extends Application {
             }
         });
 
-        vertLayout.getChildren().addAll(title,username, password, brokerIP, brokerPort, deviceName, controllerName, exportPath, exportBrowse, parameters, filterPath, filterBrowse);
+        vertLayout.getChildren().addAll(title,username, password, brokerIP, brokerPort, deviceName,ipAddress, controllerName, exportPath, exportBrowse, parameters, filterPath, filterBrowse);
         Button submit = new Button("Submit");
         submit.setOnAction(event -> {
             //Makes sure CSV file is chosen for export
@@ -147,6 +150,7 @@ public class NodeInterface extends Application {
             propsSource.put("rabbitmq.filterPath",filterPath.getText());
             propsSource.put("rabbitmq.captureParameters",parameters.getText());
             propsSource.put("rabbitmq.exportPath",exportPath.getText());
+            propsSource.put("ID", ipAddress.getText());
 
             //Checks for empty properties
             for (Map.Entry<Object, Object> entry : propsSource.entrySet()) {
